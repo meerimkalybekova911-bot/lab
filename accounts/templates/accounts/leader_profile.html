@@ -1,0 +1,86 @@
+{% extends 'accounts/base_leader.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="container mt-4">
+<div class="row">
+
+<!-- СОЛ -->
+<div class="col-md-4">
+<div class="card text-center p-3">
+
+{% if labassistant.profile_image %}
+<img src="{{ labassistant.profile_image.url }}" 
+     class="rounded-circle mb-3"
+     style="width:150px;height:150px;object-fit:cover;">
+{% else %}
+<img src="{% static 'img/default-user.png' %}"
+     class="rounded-circle mb-3"
+     style="width:150px;">
+{% endif %}
+
+<h5>{{ labassistant.full_name }}</h5>
+<p class="text-muted">{{ labassistant.get_role_display }}</p>
+
+{% if labassistant.resume %}
+<a href="{{ labassistant.resume.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+Резюме жүктөө
+</a>
+{% endif %}
+
+</div>
+</div>
+
+
+<!-- ОҢ -->
+<div class="col-md-8">
+<div class="card p-3">
+
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}
+
+{% for field in form %}
+<div class="mb-3">
+<label class="form-label">{{ field.label }}</label>
+{{ field }}
+{% if field.errors %}
+<div class="text-danger small">
+{{ field.errors }}
+</div>
+{% endif %}
+</div>
+{% endfor %}
+
+<button class="btn btn-primary">
+Сактоо
+</button>
+
+</form>
+
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- +996 авто -->
+<script>
+const phone = document.querySelector('input[name="phone"]');
+
+if (phone) {
+    phone.addEventListener('focus', function() {
+        if (!this.value.startsWith('+996')) {
+            this.value = '+996';
+        }
+    });
+
+    phone.addEventListener('input', function() {
+        if (!this.value.startsWith('+996')) {
+            this.value = '+996';
+        }
+    });
+}
+</script>
+
+{% endblock %}

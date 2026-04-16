@@ -1,0 +1,73 @@
+/* Контейнер */
+.form-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+/* Карточка */
+.form-card {
+    width: 100%;
+    max-width: 600px;
+    background: #ffffff;
+    padding: 25px 30px;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+/* Аталыш */
+.form-card h2 {
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 22px;
+}
+
+/* Django form.as_p */
+.form-card p {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+/* Input, select */
+.form-card input,
+.form-card select,
+.form-card textarea {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+/* Батндар */
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.btn-primary {
+    background: #1976d2;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    background: #e0e0e0;
+    color: #333;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+}
+
+.btn-primary:hover {
+    background: #125ca1;
+}
+
+.btn-secondary:hover {
+    background: #cfcfcf;
+}

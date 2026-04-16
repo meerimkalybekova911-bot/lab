@@ -1,0 +1,48 @@
+.card {
+    width: 500px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.card h2 {
+    text-align: center;
+    color: #333;
+}
+
+.card label {
+    display: block;
+    margin-top: 15px;
+    font-weight: bold;
+}
+
+.card input[type="date"],
+.card textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.card .checkbox {
+    margin-top: 10px;
+}
+
+.card button {
+    margin-top: 20px;
+    width: 100%;
+    padding: 10px;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.card button:hover {
+    background-color: #45a049;
+}

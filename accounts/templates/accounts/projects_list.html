@@ -1,0 +1,248 @@
+{% extends 'accounts/base_laborant.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+<h2>Иш пландар</h2>
+
+<a href="{% url 'project_create' %}" class="btn btn-primary">
+Жаңы иш план
+</a>
+</div>
+
+
+<!-- СТАТИСТИКА -->
+<div class="row mb-4">
+
+<div class="col-md-3">
+<div class="card bg-primary text-white text-center">
+<div class="card-body">
+<p class="mb-1">Бардыгы</p>
+<h3>{{ total_projects }}</h3>
+</div>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card bg-success text-white text-center">
+<div class="card-body">
+<p class="mb-1">Активдүү</p>
+<h3>{{ active_projects }}</h3>
+</div>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card bg-warning text-white text-center">
+<div class="card-body">
+<p class="mb-1">Паузада</p>
+<h3>{{ paused_projects }}</h3>
+</div>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card bg-secondary text-white text-center">
+<div class="card-body">
+<p class="mb-1">Бүткөн</p>
+<h3>{{ completed_projects }}</h3>
+</div>
+</div>
+</div>
+
+</div>
+
+
+<!-- ТАБЛИЦА -->
+<div class="table-responsive">
+
+<table class="table table-hover table-bordered align-middle">
+
+<thead class="table-light">
+
+<tr>
+<th style="width:60px">№</th>
+<th>Аты</th>
+<th style="width:170px">Статус</th>
+<th style="width:140px">Башталган</th>
+<th style="width:140px">Аяктоо</th>
+<th style="width:120px">Файл</th>
+<th style="width:120px">Иш</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for project in projects %}
+
+<tr>
+
+<td>{{ forloop.counter }}</td>
+
+<td>
+<strong>{{ project.title }}</strong>
+<br>
+<small class="text-muted">
+{{ project.labassistant.full_name }}
+</small>
+</td>
+
+
+<td>
+
+<form method="post" action="{% url 'update_project_status' project.id %}">
+{% csrf_token %}
+
+<select name="status"
+class="form-select form-select-sm"
+onchange="this.form.submit()">
+
+<option value="active"
+{% if project.status == 'active' %}selected{% endif %}>
+Активдүү
+</option>
+
+<option value="paused"
+{% if project.status == 'paused' %}selected{% endif %}>
+Паузада
+</option>
+
+<option value="completed"
+{% if project.status == 'completed' %}selected{% endif %}>
+Бүткөн
+</option>
+
+</select>
+
+</form>
+
+</td>
+
+
+<td>
+{{ project.start_date|date:"d.m.Y" }}
+</td>
+
+<td>
+{{ project.end_date|date:"d.m.Y"|default:"-" }}
+</td>
+
+
+<td>
+
+{% if project.attachment %}
+
+<a href="{{ project.attachment.url }}"
+class="btn btn-sm btn-outline-primary"
+download>
+
+Жүктөө
+
+</a>
+
+{% else %}
+
+<span class="text-muted">Жок</span>
+
+{% endif %}
+
+</td>
+
+
+<td>
+
+<a href="{% url 'project_update' project.id %}"
+class="btn btn-sm btn-warning">
+
+Өзгөртүү
+
+</a>
+
+</td>
+
+</tr>
+
+
+<!-- КОММЕНТАРИЙ БӨЛҮГҮ -->
+<tr>
+<td colspan="7">
+
+<div class="p-3 bg-light rounded">
+
+<b>Комментарийлер:</b>
+
+<div class="mt-2 mb-3">
+
+{% for comment in project.comments.all %}
+
+<div class="border rounded p-2 mb-2">
+
+<b>{{ comment.author.full_name }}</b>
+<small class="text-muted">
+{{ comment.created_at|date:"d.m.Y H:i" }}
+</small>
+
+<div>
+{{ comment.text }}
+</div>
+
+</div>
+
+{% empty %}
+
+<p class="text-muted">Комментарий жок</p>
+
+{% endfor %}
+
+</div>
+
+
+<!-- КОММЕНТАРИЙ КОШУУ ФОРМАСЫ -->
+
+<form method="post" action="{% url 'add_comment' project.id %}">
+{% csrf_token %}
+
+<div class="input-group">
+
+<input type="text"
+name="comment"
+class="form-control"
+placeholder="Комментарий жазуу..."
+required>
+
+<button class="btn btn-primary">
+Жөнөтүү
+</button>
+
+</div>
+
+</form>
+
+</div>
+
+</td>
+</tr>
+
+{% empty %}
+
+<tr>
+<td colspan="7" class="text-center text-muted">
+Иш пландар азырынча жок
+</td>
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+{% endblock %}

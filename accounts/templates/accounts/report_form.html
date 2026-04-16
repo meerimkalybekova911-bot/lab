@@ -1,0 +1,97 @@
+{% extends 'accounts/base_laborant.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">{{ page_title|default:"Отчет түзүү" }}</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Отчеттун аты*</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                        <div class="text-danger">{{ form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Иш план*</label>
+                        {{ form.project }}
+                        {% if form.project.errors %}
+                        <div class="text-danger">{{ form.project.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted">Бүттү статусуна ээ болгон иш пландар гана көрсөтүлөт</small>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Баяндама</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                    <div class="text-danger">{{ form.description.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Файл (PDF, Word, Excel)*</label>
+                    {{ form.file }}
+                    {% if form.file.errors %}
+                    <div class="text-danger">{{ form.file.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Комментарий</label>
+                    {{ form.comment }}
+                    {% if form.comment.errors %}
+                    <div class="text-danger">{{ form.comment.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Скрытое поле для лаборанта -->
+                {{ form.labassistant }}
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'reports_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Артка
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Сактоо
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Форма стилдери */
+    input, select, textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+    
+    label {
+        font-weight: 500;
+        margin-bottom: 5px;
+        display: block;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,377 @@
+{% extends 'accounts/base_leader.html' %}
+{% load static %}
+
+{% block title %}Жетекчинин мониторинг панели{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2>Жетекчинин мониторинг панели</h2>
+      <p class="text-muted mb-0">Бардык лаборанттардын иш аракеттерин көзөмөлдөө</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-muted">Лаборант:</span>
+      <select class="form-select form-select-sm" onchange="window.location.href='?laborant='+this.value" style="width:250px;">
+        <option value="all" {% if selected_laborant_id == 'all' %}selected{% endif %}>Бардык лаборанттар</option>
+        {% for laborant in laborants %}
+        <option value="{{ laborant.id }}" {% if selected_laborant_id == laborant.id|stringformat:"i" %}selected{% endif %}>{{ laborant.full_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <!-- СТАТИСТИКА -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card text-white bg-primary shadow-sm"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><h5 class="card-title">Лаборанттар</h5><h2 class="mb-0">{{ total_laborants }}</h2><small class="opacity-75">Жалпы саны</small></div>
+        <i class="bi bi-people display-6 opacity-50"></i>
+      </div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-white bg-success shadow-sm"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><h5 class="card-title">Активдүү иш пландар</h5><h2 class="mb-0">{{ active_projects }}</h2><small class="opacity-75">Иштеп жатат</small></div>
+        <i class="bi bi-folder display-6 opacity-50"></i>
+      </div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-white bg-info shadow-sm"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><h5 class="card-title">Бүгүн келгендер</h5><h2 class="mb-0">{{ today_attendance }}</h2><small class="opacity-75">{% now "d.m.Y" %}</small></div>
+        <i class="bi bi-calendar-check display-6 opacity-50"></i>
+      </div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-white bg-secondary shadow-sm"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><h5 class="card-title">Компьютерлер</h5><h2 class="mb-0">{{ bad_computers }}</h2><small class="opacity-75">Жалпы саны</small></div>
+        <i class="bi bi-pc-display display-6 opacity-50"></i>
+      </div></div>
+    </div>
+  </div>
+
+  {% if late_arrivals %}
+  <div class="card border-warning mb-4 shadow-sm">
+    <div class="card-header bg-warning text-dark"><h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Акыркы кечигип келүүлөр</h5></div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Лаборант</th><th>Күнү</th><th>Убактысы</th><th>Себеби</th></tr></thead>
+          <tbody>
+            {% for a in late_arrivals %}
+            <tr>
+              <td>{{ a.labassistant.full_name }}</td>
+              <td>{{ a.date|date:"d.m.Y" }}</td>
+              <td><span class="badge bg-danger">{{ a.arrival_time }}</span></td>
+              <td>{{ a.comment|default:"—"|truncatechars:50 }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ТАБС -->
+  <ul class="nav nav-tabs mb-4" id="leaderTabs">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#attendance" type="button"><i class="bi bi-calendar-check me-1"></i>Келүү журналы</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#projects" type="button"><i class="bi bi-folder me-1"></i>Иш пландар</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#reports" type="button"><i class="bi bi-file-text me-1"></i>Отчеттор</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#computers" type="button"><i class="bi bi-pc-display me-1"></i>Компьютерлер</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#laborants" type="button"><i class="bi bi-people me-1"></i>Лаборанттар</button></li>
+  </ul>
+
+  <div class="tab-content">
+
+    <!-- 1. КЕЛҮҮ ЖУРНАЛЫ -->
+    <div class="tab-pane fade show active" id="attendance">
+      <div class="card shadow-sm"><div class="card-body">
+        <h5 class="card-title"><i class="bi bi-calendar-check me-2"></i>Келүү журналы <span class="badge bg-primary ms-1">{{ attendance_data.count }}</span></h5>
+        {% if attendance_data %}
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead><tr><th>Лаборант</th><th>Күнү</th><th>Убактысы</th><th>Статус</th><th>Сүрөт</th><th>Себеби</th></tr></thead>
+            <tbody>
+              {% for att in attendance_data|slice:":20" %}
+              <tr>
+                <td>{{ att.labassistant.full_name }}</td>
+                <td>{{ att.date|date:"d.m.Y" }}</td>
+                <td>{{ att.arrival_time }}</td>
+                <td>{% if att.late %}<span class="badge bg-danger">Кечикти</span>{% else %}<span class="badge bg-success">Убактылуу</span>{% endif %}</td>
+                <td>{% if att.photo %}<img src="{{ att.photo.url }}" class="img-thumbnail" style="width:50px;height:50px;object-fit:cover;cursor:pointer;" onclick="openImageModal('{{ att.photo.url }}')" onerror="this.style.display='none'">{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                <td>{{ att.comment|default:"—"|truncatechars:30 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}<div class="text-center py-4 text-muted"><i class="bi bi-calendar-x display-4"></i><p class="mt-3">Каттоо жок</p></div>{% endif %}
+      </div></div>
+    </div>
+
+    <!-- 2. ИШ ПЛАНДАР + КОММЕНТАРИЙЛЕР -->
+    <div class="tab-pane fade" id="projects">
+      {% if projects_data %}
+        {% for project in projects_data %}
+        <div class="card shadow-sm mb-4">
+          <div class="card-header d-flex justify-content-between align-items-start">
+            <div>
+              <h5 class="mb-1">{{ project.title }}</h5>
+              <small class="text-muted">
+                <i class="bi bi-person me-1"></i>{{ project.labassistant.full_name }}
+                &nbsp;·&nbsp;
+                <i class="bi bi-calendar me-1"></i>{{ project.start_date|date:"d.m.Y" }}{% if project.end_date %} — {{ project.end_date|date:"d.m.Y" }}{% endif %}
+              </small>
+            </div>
+            <div class="d-flex gap-2 flex-shrink-0 ms-2">
+              <span class="badge {% if project.status == 'active' %}bg-success{% elif project.status == 'paused' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ project.get_status_display }}</span>
+              {% if project.is_public %}<span class="badge bg-info">Жарыяланган</span>{% else %}<span class="badge bg-light text-muted border">Жабык</span>{% endif %}
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="mb-3">{{ project.description }}</p>
+            {% if project.attachment %}
+            <div class="mb-3">
+              <a href="{{ project.attachment.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                <i class="bi bi-file-earmark-arrow-down"></i> Иш планды жүктөө
+              </a>
+            </div>
+            {% endif %}
+            <!-- КОММЕНТАРИЙЛЕР -->
+            <div class="border rounded p-3" style="background:#f8f9fa;">
+              <h6 class="mb-3"><i class="bi bi-chat-dots me-1"></i>Комментарийлер <span class="badge bg-secondary">{{ project.comments.count }}</span></h6>
+              {% for comment in project.comments.all %}
+              <div class="d-flex mb-3">
+                <div class="flex-shrink-0 me-2">
+                  {% if comment.author.profile_image %}
+                  <img src="{{ comment.author.profile_image.url }}" class="rounded-circle" width="36" height="36" style="object-fit:cover;" onerror="this.style.display='none'">
+                  {% else %}
+                  <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width:36px;height:36px;font-size:14px;font-weight:600;">{{ comment.author.full_name|slice:":1" }}</div>
+                  {% endif %}
+                </div>
+                <div class="flex-grow-1">
+                  <div class="bg-white border rounded p-2">
+                    <div class="d-flex justify-content-between mb-1">
+                      <strong style="font-size:13px;">{{ comment.author.full_name }}</strong>
+                      <small class="text-muted">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
+                    </div>
+                    <p class="mb-0" style="font-size:14px;">{{ comment.text }}</p>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <p class="text-muted mb-3" style="font-size:13px;">Азырынча комментарий жок</p>
+              {% endfor %}
+              <form method="post" action="{% url 'add_comment' project.id %}">
+                {% csrf_token %}
+                <div class="input-group">
+                  <input type="text" name="comment" class="form-control form-control-sm" placeholder="Комментарий жазыңыз..." required>
+                  <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-send"></i> Жөнөтүү</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="card shadow-sm"><div class="card-body text-center py-5 text-muted"><i class="bi bi-folder-x display-4"></i><p class="mt-3">Иш пландар жок</p></div></div>
+      {% endif %}
+    </div>
+
+    <!-- 3. ОТЧЕТТОР + ФАЙЛ -->
+    <div class="tab-pane fade" id="reports">
+      <div class="card shadow-sm"><div class="card-body">
+        <h5 class="card-title"><i class="bi bi-file-text me-2"></i>Отчеттор <span class="badge bg-info ms-1">{{ reports_data.count }}</span></h5>
+        {% if reports_data %}
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead><tr><th>Лаборант</th><th>Отчеттун аты</th><th>Иш план</th><th>Баяндама</th><th>Түзүлгөн күнү</th><th>Файл</th></tr></thead>
+            <tbody>
+              {% for report in reports_data %}
+              <tr>
+                <td>{{ report.labassistant.full_name }}</td>
+                <td><strong>{{ report.title }}</strong></td>
+                <td>{{ report.project.title }}</td>
+                <td>{{ report.description|default:"—"|truncatechars:40 }}</td>
+                <td>{{ report.created_at|date:"d.m.Y H:i" }}</td>
+                <td>
+                  {% if report.file %}
+                  <a href="{{ report.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank"><i class="bi bi-file-earmark-arrow-down"></i> Жүктөө</a>
+                  {% else %}<span class="text-muted">Файл жок</span>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}<div class="text-center py-4 text-muted"><i class="bi bi-file-x display-4"></i><p class="mt-3">Отчеттор жок</p></div>{% endif %}
+      </div></div>
+    </div>
+
+    <!-- 4. КОМПЬЮТЕРЛЕР -->
+    <div class="tab-pane fade" id="computers">
+      <div class="card shadow-sm"><div class="card-body">
+        <h5 class="card-title"><i class="bi bi-pc-display me-2"></i>Компьютерлер <span class="badge bg-secondary ms-1">{{ bad_computers }}</span></h5>
+        {% if computers_by_laborant %}
+        <div class="accordion" id="computersAccordion">
+          {% for laborant, rooms_dict in computers_by_laborant.items %}
+          <div class="accordion-item mb-3 border">
+            <h2 class="accordion-header">
+              <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ laborant.id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
+                <span class="fw-bold">{{ laborant.full_name }}</span>
+                <span class="badge bg-info ms-2">{{ rooms_dict|length }} кабинет</span>
+              </button>
+            </h2>
+            <div id="collapse-{{ laborant.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#computersAccordion">
+              <div class="accordion-body p-0">
+                {% for room, computers in rooms_dict.items %}
+                <div class="border-bottom">
+                  <div class="bg-light p-3 border-bottom d-flex justify-content-between">
+                    <h6 class="mb-0"><i class="bi bi-door-closed me-2"></i>Кабинет: <strong>{{ room.name }}</strong></h6>
+                    <span class="badge bg-primary">{{ computers.count }} компьютер</span>
+                  </div>
+                  <div class="p-3">
+                    {% if computers %}
+                    <div class="table-responsive">
+                      <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light"><tr><th>№</th><th>Монитор инв. №</th><th>Монитор</th><th>Сист. блок инв. №</th><th>Эне плата</th><th>Процессор</th><th>RAM</th><th>Катуу диск</th><th>Системалык блок</th></tr></thead>
+                        <tbody>
+                          {% for computer in computers %}
+                          <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ computer.monitor_inv|default:"—" }}</td>
+                            <td>{{ computer.monitor|default:"—" }}</td>
+                            <td>{{ computer.block_inv|default:"—" }}</td>
+                            <td><small>{{ computer.motherboard|default:"—" }}</small></td>
+                            <td><small>{{ computer.processor|default:"—" }}</small></td>
+                            <td><small>{{ computer.ram|default:"—" }}</small></td>
+                            <td><small>{{ computer.hdd_size|default:"—" }} {{ computer.hdd_type }}</small></td>
+                            <td><small>{{ computer.power_supply|default:"—" }}</small></td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                    {% else %}<p class="text-muted text-center py-3 mb-0">Бул кабинетте компьютер жок</p>{% endif %}
+                  </div>
+                </div>
+                {% empty %}<div class="text-center py-4 text-muted"><p>{{ laborant.full_name }} лаборантына жооптуу кабинеттер жок</p></div>{% endfor %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}<div class="text-center py-5 text-muted"><i class="bi bi-pc-display-horizontal display-4"></i><p class="mt-3">{% if selected_laborant %}{{ selected_laborant.full_name }} лаборантына жооптуу компьютерлер жок{% else %}Лаборанттардын компьютерлери жок{% endif %}</p></div>{% endif %}
+      </div></div>
+    </div>
+
+    <!-- 5. ЛАБОРАНТТАР — ЖЕКЕ МААЛЫМАТТАР -->
+    <div class="tab-pane fade" id="laborants">
+      <div class="row g-4">
+        {% for lab in laborants %}
+        {% if not selected_laborant or selected_laborant.id == lab.id %}
+        <div class="col-md-6">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <!-- Башкы маалымат -->
+              <div class="d-flex align-items-center mb-3">
+                <div class="flex-shrink-0 me-3">
+                  {% if lab.profile_image %}
+                  <img src="{{ lab.profile_image.url }}" class="rounded-circle" width="72" height="72" style="object-fit:cover;border:3px solid #e3f2fd;" onerror="this.style.display='none'">
+                  {% else %}
+                  <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width:72px;height:72px;font-size:24px;font-weight:600;">{{ lab.full_name|slice:":1" }}</div>
+                  {% endif %}
+                </div>
+                <div>
+                  <h5 class="mb-1">{{ lab.full_name }}</h5>
+                  <span class="badge bg-primary">{{ lab.get_role_display }}</span>
+                </div>
+              </div>
+              <hr class="my-2">
+              <!-- Байланыш -->
+              <div class="mb-2">
+                <small class="text-muted d-block mb-1" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Байланыш</small>
+                <p class="mb-1"><i class="bi bi-telephone text-primary me-2"></i>{{ lab.phone|default:"Телефон жок" }}</p>
+                <p class="mb-1"><i class="bi bi-envelope text-primary me-2"></i>{{ lab.user.email|default:"Email жок" }}</p>
+              </div>
+              <!-- Кабинеттер -->
+              {% if lab.rooms.all %}
+              <div class="mb-2">
+                <small class="text-muted d-block mb-1" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Кабинеттер</small>
+                {% for room in lab.rooms.all %}<span class="badge bg-light text-dark border me-1">{{ room.name }}</span>{% endfor %}
+              </div>
+              {% endif %}
+              <!-- Өмүр баяны -->
+              {% if lab.notes %}
+              <div class="mb-2">
+                <small class="text-muted d-block mb-1" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Өмүр баяны</small>
+                <p class="mb-0" style="font-size:13px;color:#495057;">{{ lab.notes|truncatechars:200 }}</p>
+              </div>
+              {% endif %}
+              <!-- Статистика -->
+              <div class="row g-2 mt-2">
+                <div class="col-4"><div class="text-center bg-light rounded p-2"><div style="font-size:18px;font-weight:600;">{{ lab.projects.count }}</div><small class="text-muted">Иш план</small></div></div>
+                <div class="col-4"><div class="text-center bg-light rounded p-2"><div style="font-size:18px;font-weight:600;">{{ lab.reports.count }}</div><small class="text-muted">Отчет</small></div></div>
+                <div class="col-4"><div class="text-center bg-light rounded p-2"><div style="font-size:18px;font-weight:600;">{{ lab.attendances.count }}</div><small class="text-muted">Келүү</small></div></div>
+              </div>
+              <!-- Резюме -->
+              {% if lab.resume %}
+              <div class="mt-3">
+                <a href="{{ lab.resume.url }}" target="_blank" class="btn btn-sm btn-outline-primary w-100">
+                  <i class="bi bi-file-earmark-person"></i> Резюмени ачуу
+                </a>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        {% empty %}
+        <div class="col-12"><div class="card shadow-sm"><div class="card-body text-center py-5 text-muted"><i class="bi bi-people display-4"></i><p class="mt-3">Лаборанттар жок</p></div></div></div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Сүрөт модалы -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+  <div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title">Келүү сүрөтү</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body text-center"><img id="modalImage" src="" class="img-fluid"></div>
+  </div></div>
+</div>
+
+<script>
+function openImageModal(url) {
+    document.getElementById('modalImage').src = url;
+    new bootstrap.Modal(document.getElementById('imageModal')).show();
+}
+document.addEventListener('DOMContentLoaded', function () {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab) { const el = document.querySelector('[data-bs-target="#'+tab+'"]'); if (el) new bootstrap.Tab(el).show(); }
+    const lid = params.get('laborant');
+    if (lid && lid !== 'all') {
+        const btn = document.querySelector('[data-bs-target="#collapse-'+lid+'"]');
+        const div = document.getElementById('collapse-'+lid);
+        if (btn && div) { btn.classList.remove('collapsed'); btn.setAttribute('aria-expanded','true'); div.classList.add('show'); }
+    }
+});
+</script>
+
+<style>
+.nav-tabs .nav-link { font-weight:500;color:#495057;border:none;border-bottom:3px solid transparent;padding:10px 16px; }
+.nav-tabs .nav-link.active { font-weight:600;color:#0d6efd;border-bottom:3px solid #0d6efd;background:transparent; }
+.table th { font-weight:600;background-color:#f8f9fa;border-top:none; }
+.card { border:none;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.08); }
+.accordion-button { font-weight:500;color:#495057;background-color:#f8f9fa; }
+.accordion-button:not(.collapsed) { color:#0d6efd;background-color:#e7f1ff;box-shadow:none; }
+.accordion-button:focus { box-shadow:none; }
+</style>
+{% endblock %}

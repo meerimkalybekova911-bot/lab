@@ -1,0 +1,54 @@
+.card {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 30px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.card h2 {
+    margin-bottom: 20px;
+    color: #243c8f;
+    text-align: center;
+}
+
+.card form label {
+    display: block;
+    margin-top: 15px;
+    font-weight: bold;
+}
+
+.card form input[type="text"],
+.card form input[type="date"],
+.card form textarea,
+.card form select,
+.card form input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.card form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.card form button {
+    margin-top: 20px;
+    width: 100%;
+    padding: 12px;
+    background: #243c8f;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.card form button:hover {
+    background: #1b2a6f;
+}

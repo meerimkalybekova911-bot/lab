@@ -1,0 +1,39 @@
+{% extends 'accounts/base_laborant.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+            <h4 class="mb-0">Отчетту өчүрүү</h4>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <h5><i class="bi bi-exclamation-triangle"></i> Эскертүү!</h5>
+                <p>Сиз "{{ report.title }}" отчетун өчүрүүнү каалайсызбы?</p>
+                <p class="mb-0">Бул аракетти кайра кайтарып албайсыз.</p>
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6>Отчеттун маалыматтары:</h6>
+                    <p><strong>Аты:</strong> {{ report.title }}</p>
+                    <p><strong>Долбоор:</strong> {{ report.project.title }}</p>
+                    <p><strong>Түзүлгөн күнү:</strong> {{ report.created_at|date:"d.m.Y H:i" }}</p>
+                </div>
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'reports_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Жокко чыгаруу
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Ооба, өчүрүү
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

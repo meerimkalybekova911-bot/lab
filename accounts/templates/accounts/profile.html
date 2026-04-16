@@ -1,0 +1,193 @@
+{% extends 'accounts/base_laborant.html' %}
+ 
+{% block title %}Профиль{% endblock %}
+ 
+{% block content %}
+<div class="container mt-4">
+<div class="row g-4">
+ 
+  <!-- ПРОФИЛЬ КАРТОЧКАСЫ -->
+  <div class="col-md-4">
+    <div class="card shadow-sm text-center">
+      <div class="card-body py-4">
+ 
+        {% if labassistant.profile_image %}
+          <img src="{{ labassistant.profile_image.url }}"
+               class="rounded-circle mb-3"
+               width="150" height="150"
+               style="object-fit:cover; border:3px solid #e3f2fd;">
+        {% else %}
+          <i class="bi bi-person-circle text-secondary mb-3"
+             style="font-size:120px; display:block;"></i>
+        {% endif %}
+ 
+        <h5 class="mb-1">{{ labassistant.full_name }}</h5>
+        <p class="text-muted mb-2">{{ labassistant.get_role_display }}</p>
+ 
+        {% if labassistant.phone %}
+        <p class="mb-2">
+          <i class="bi bi-telephone text-primary"></i>
+          {{ labassistant.phone }}
+        </p>
+        {% endif %}
+ 
+        {% if labassistant.resume %}
+        <a href="{{ labassistant.resume.url }}"
+           class="btn btn-outline-primary btn-sm mt-2"
+           target="_blank">
+          <i class="bi bi-file-earmark-text"></i> Резюме ачуу
+        </a>
+        {% endif %}
+ 
+      </div>
+    </div>
+  </div>
+ 
+  <!-- ПРОФИЛДИ ӨЗГӨРТҮҮ ФОРМАСЫ -->
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header fw-500">
+        <i class="bi bi-pencil-square"></i> Профильди өзгөртүү
+      </div>
+      <div class="card-body">
+ 
+        {# FIX: enctype милдеттүү — файл жүктөө үчүн #}
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+ 
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+ 
+          <!-- Аты-жөнү -->
+          <div class="mb-3">
+            <label class="form-label fw-500">
+              Аты-жөнү <span class="text-danger">*</span>
+            </label>
+            {# FIX: form.full_name — форма виджети аркылуу #}
+            {{ form.full_name }}
+            {% if form.full_name.errors %}
+              <div class="text-danger small mt-1">{{ form.full_name.errors }}</div>
+            {% endif %}
+          </div>
+ 
+          <!-- Телефон -->
+          <div class="mb-3">
+            <label class="form-label fw-500">Телефон</label>
+            {# FIX: form.phone — виджет id="phone" бар, JS менен дал келет #}
+            {{ form.phone }}
+            {% if form.phone.errors %}
+              <div class="text-danger small mt-1">{{ form.phone.errors }}</div>
+            {% endif %}
+            <small class="text-muted">Формат: +996XXXXXXXXX</small>
+          </div>
+ 
+          <!-- Профиль сүрөтү -->
+          <div class="mb-3">
+            <label class="form-label fw-500">Профиль сүрөтү</label>
+            {# FIX: form.profile_image — форма виджети, HTML <input> эмес #}
+            {{ form.profile_image }}
+            {% if form.profile_image.errors %}
+              <div class="text-danger small mt-1">{{ form.profile_image.errors }}</div>
+            {% endif %}
+            {% if labassistant.profile_image %}
+              <small class="text-muted">
+                Учурдагы:
+                <a href="{{ labassistant.profile_image.url }}" target="_blank">
+                  сүрөттү көрүү
+                </a>
+              </small>
+            {% endif %}
+          </div>
+ 
+          <!-- Резюме -->
+          <div class="mb-3">
+            <label class="form-label fw-500">Резюме</label>
+            {# FIX: form.resume — форма виджети, валидация clean_resume() иштейт #}
+            {{ form.resume }}
+            {% if form.resume.errors %}
+              <div class="text-danger small mt-1">{{ form.resume.errors }}</div>
+            {% endif %}
+            <small class="text-muted">PDF, DOC же DOCX (макс. 5 МБ)</small>
+            {% if labassistant.resume %}
+              <small class="text-muted d-block">
+                Учурдагы:
+                <a href="{{ labassistant.resume.url }}" target="_blank">
+                  файлды ачуу
+                </a>
+              </small>
+            {% endif %}
+          </div>
+ 
+          <!-- Өмүр баяны -->
+          <div class="mb-3">
+            <label class="form-label fw-500">Өмүр баяны</label>
+            {{ form.notes }}
+            {% if form.notes.errors %}
+              <div class="text-danger small mt-1">{{ form.notes.errors }}</div>
+            {% endif %}
+          </div>
+ 
+          <div class="d-flex justify-content-between align-items-center mt-4">
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+              <i class="bi bi-arrow-left"></i> Артка
+            </a>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save"></i> Сактоо
+            </button>
+          </div>
+ 
+        </form>
+      </div>
+    </div>
+  </div>
+ 
+</div>
+</div>
+ 
+<script>
+// Телефон форматтоо — форма виджети id="phone" менен дал келет
+document.addEventListener("DOMContentLoaded", function () {
+    const phone = document.getElementById("phone");
+    if (!phone) return;
+ 
+    // Баштапкы маани жок болсо префикс коюу
+    if (!phone.value) {
+        phone.value = "+996";
+    }
+ 
+    phone.addEventListener("input", function () {
+        // Бардык цифраларды алабыз
+        let digits = phone.value.replace(/\D/g, '');
+ 
+        // 996 менен башталса — алып салабыз
+        if (digits.startsWith("996")) {
+            digits = digits.substring(3);
+        }
+ 
+        // 9 цифрадан ашпасын
+        digits = digits.substring(0, 9);
+ 
+        // Форматтап коюу: +996XXXXXXXXX
+        phone.value = "+996" + digits;
+    });
+ 
+    // Жаңы саптан башталбасын
+    phone.addEventListener("keydown", function (e) {
+        // Башынан +996'ны өчүрбөсүн
+        if (
+            (e.key === "Backspace" || e.key === "Delete") &&
+            phone.value.length <= 4
+        ) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+ 
+{% endblock %}
+ 

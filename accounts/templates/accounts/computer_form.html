@@ -1,0 +1,162 @@
+{% extends 'accounts/base_laborant.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="mb-0">
+        {% if computer %}
+          Компьютерди өзгөртүү
+        {% else %}
+          Жаңы компьютер кошуу
+        {% endif %}
+      </h4>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div class="alert alert-danger">
+          <strong>Каталар табылды:</strong>
+          <ul class="mb-0 mt-1">
+            {% for field, errors in form.errors.items %}
+              {% for error in errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <!-- Негизги маалыматтар -->
+        <h5 class="border-bottom pb-2 mb-3">Негизги маалыматтар</h5>
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label class="form-label">Кабинет <span class="text-danger">*</span></label>
+            {{ form.room }}
+            {% if form.room.errors %}
+              <div class="text-danger small">{{ form.room.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Монитор -->
+        <h5 class="border-bottom pb-2 mt-3 mb-3">Монитор</h5>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Монитор инв. № <span class="text-danger">*</span></label>
+            {{ form.monitor_inv }}
+            <small class="text-muted">Монитордун инвентардык номери</small>
+            {% if form.monitor_inv.errors %}
+              <div class="text-danger small">{{ form.monitor_inv.errors }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Монитор <span class="text-danger">*</span></label>
+            {{ form.monitor }}
+            <small class="text-muted">Монитордун маркасы же модели (мис.: Acer V206HQL)</small>
+            {% if form.monitor.errors %}
+              <div class="text-danger small">{{ form.monitor.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Системалык блок -->
+        <h5 class="border-bottom pb-2 mt-3 mb-3">Системалык блок</h5>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Системалык блок инв. № <span class="text-danger">*</span></label>
+            {{ form.block_inv }}
+            <small class="text-muted">Системалык блоктун инвентардык номери</small>
+            {% if form.block_inv.errors %}
+              <div class="text-danger small">{{ form.block_inv.errors }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Системалык блок <span class="text-danger">*</span></label>
+            {{ form.power_supply }}
+            <small class="text-muted">Системалык блоктун маркасы же кубаты (мис.: 500W)</small>
+            {% if form.power_supply.errors %}
+              <div class="text-danger small">{{ form.power_supply.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Техникалык маалыматтар -->
+        <h5 class="border-bottom pb-2 mt-3 mb-3">Техникалык маалыматтар</h5>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Эне плата <span class="text-danger">*</span></label>
+            {{ form.motherboard }}
+            <small class="text-muted">Эне платанын аты же модели (мис.: ASUS H110M-K)</small>
+            {% if form.motherboard.errors %}
+              <div class="text-danger small">{{ form.motherboard.errors }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Процессор <span class="text-danger">*</span></label>
+            {{ form.processor }}
+            <small class="text-muted">Процессордун аты же модели (мис.: Intel Core i5-9400F)</small>
+            {% if form.processor.errors %}
+              <div class="text-danger small">{{ form.processor.errors }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Оперативдүү эс (RAM) <span class="text-danger">*</span></label>
+            {{ form.ram }}
+            <small class="text-muted">RAM өлчөмү жана ылдамдыгы (мис.: 8 ГБ DDR4)</small>
+            {% if form.ram.errors %}
+              <div class="text-danger small">{{ form.ram.errors }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Видеокарта</label>
+            {{ form.video_card }}
+            <small class="text-muted">Видеокартанын аты же модели (мис.: NVIDIA GTX 1050) — милдеттүү эмес</small>
+            {% if form.video_card.errors %}
+              <div class="text-danger small">{{ form.video_card.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Катуу диск: өлчөм + түр өзүнчө -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Катуу дисктин өлчөмү <span class="text-danger">*</span></label>
+            {{ form.hdd_size }}
+            <small class="text-muted">Дисктин өлчөмү (мис.: 500 ГБ)</small>
+            {% if form.hdd_size.errors %}
+              <div class="text-danger small">{{ form.hdd_size.errors }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Катуу дисктин түрү <span class="text-danger">*</span></label>
+            {{ form.hdd_type }}
+            <small class="text-muted">HDD — айлануучу диск, SSD — тез диск</small>
+            {% if form.hdd_type.errors %}
+              <div class="text-danger small">{{ form.hdd_type.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+          <a href="{% url 'computers_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Артка
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save"></i> Сактоо
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .form-label { font-weight: 500; margin-bottom: 4px; }
+  .form-control, .form-select { padding: 8px 12px; border: 1px solid #dee2e6; border-radius: 6px; width: 100%; }
+  .form-control:focus, .form-select:focus { border-color: #0d6efd; box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25); }
+  h5 { color: #495057; font-weight: 600; }
+  .text-muted { font-size: 12px; }
+</style>
+{% endblock %}

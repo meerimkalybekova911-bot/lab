@@ -1,0 +1,161 @@
+{% extends 'accounts/base_laborant.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+<div class="card">
+<div class="card-header">
+<h4>
+
+{% if editing %}
+Иш планды өзгөртүү
+{% else %}
+Жаңы иш план түзүү
+{% endif %}
+
+</h4>
+</div>
+
+<div class="card-body">
+
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}
+
+<div class="mb-3">
+<label class="form-label">Иш пландын аты*</label>
+
+<input type="text"
+class="form-control"
+name="title"
+value="{{ project.title|default:'' }}"
+required>
+</div>
+
+
+<div class="mb-3">
+
+<label class="form-label">Статус</label>
+
+<select class="form-select" name="status">
+
+<option value="active"
+{% if project.status == 'active' %}selected{% endif %}>
+Активдүү
+</option>
+
+<option value="paused"
+{% if project.status == 'paused' %}selected{% endif %}>
+Паузада
+</option>
+
+<option value="completed"
+{% if project.status == 'completed' %}selected{% endif %}>
+Бүткөн
+</option>
+
+</select>
+
+</div>
+
+
+<div class="mb-3">
+
+<label class="form-label">Баяндама*</label>
+
+<textarea
+class="form-control"
+name="description"
+rows="4"
+required>{{ project.description|default:'' }}</textarea>
+
+</div>
+
+
+<div class="row mb-3">
+
+<div class="col-md-6">
+
+<label>Башталган күнү</label>
+
+<input type="date"
+class="form-control"
+name="start_date"
+value="{{ project.start_date|date:'Y-m-d' }}">
+
+</div>
+
+
+<div class="col-md-6">
+
+<label>Аяктоо күнү</label>
+
+<input type="date"
+class="form-control"
+name="end_date"
+value="{{ project.end_date|date:'Y-m-d' }}">
+
+</div>
+
+</div>
+
+
+<div class="mb-3">
+
+<label>Файл</label>
+
+{% if project.attachment %}
+
+<div class="alert alert-info">
+
+<a href="{{ project.attachment.url }}" target="_blank">
+Жүктөлгөн файл
+</a>
+
+<input type="checkbox" name="attachment-clear">
+Файлды өчүрүү
+
+</div>
+
+{% endif %}
+
+<input type="file" name="attachment" class="form-control">
+
+</div>
+
+
+<div class="form-check mb-3">
+
+<input
+type="checkbox"
+class="form-check-input"
+name="is_public"
+{% if project.is_public %}checked{% endif %}>
+
+<label class="form-check-label">
+Жарыяланган
+</label>
+
+</div>
+
+
+<button class="btn btn-primary">
+
+Сактоо
+
+</button>
+
+<a href="{% url 'projects_list' %}" class="btn btn-secondary">
+
+Артка
+
+</a>
+
+</form>
+
+</div>
+</div>
+</div>
+
+{% endblock %}

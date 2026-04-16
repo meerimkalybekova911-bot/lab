@@ -1,0 +1,64 @@
+venv/
+__pycache__/
+*.pyc
+db.sqlite3
+media/
+staticfiles/
+.env
+cert.key
+cert.crt
+.vscode/
+.VS/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Django stuff
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+# Environment variables
+.env
+.env.*
+
+# VS Code / IDE
+.vscode/
+.idea/
+.vs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Migrations (иногда спорно — см. ниже)
+# */migrations/*
+# !*/migrations/__init__.py
+
+# Pytest / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+
+# node (если есть фронт)
+node_modules/
+
+# collectstatic
+/static/
+
+# secrets
+*.pem
+*.key

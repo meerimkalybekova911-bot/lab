@@ -1,0 +1,439 @@
+{% extends 'accounts/base_laborant.html' %}
+ 
+{% block title %}Келүү журналы{% endblock %}
+ 
+{% block content %}
+<div class="attendance-container">
+    <h1>Келүү журналы</h1>
+    
+    <!-- Жаңы келүүнү каттоо -->
+    <div class="card">
+        <h2>Жаңы келүүнү каттоо</h2>
+        <p>Бүгүнкү келген убакытыңызды каттаңыз</p>
+        
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if today_attendance %}
+            <div class="already-recorded">
+                <p>✅ <strong>Бүгүн катталган:</strong> {{ today_attendance.arrival_time }}</p>
+                {% if today_attendance.late %}
+                    <p style="color: #f44336;">⏰ Кечикти (08:00дон кийин)</p>
+                {% endif %}
+                {% if today_attendance.comment %}
+                    <p><strong>Себеби:</strong> {{ today_attendance.comment }}</p>
+                {% endif %}
+            </div>
+        {% else %}
+            <form method="post" id="attendanceForm">
+                {% csrf_token %}
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Келүү убактысы *</label>
+                        <!-- FIX логика #2: убакытты JS аркылуу алабыз, серверди эмес -->
+                        <input type="time" name="arrival_time" id="arrivalTime" required>
+                        <p id="lateWarning" style="display:none; color:#f44336; margin-top:5px;">
+                            ⚠️ Эскертүү: 08:00дон кийин — кечигүү катталат
+                        </p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Дата</label>
+                        <input type="text" id="currentDate" disabled>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <!-- FIX тил #1: "милдеттүү түрдө" → жылдызча менен белгиленген -->
+                    <label>Сүрөт * <span style="color:#f44336; font-size:12px;">(милдеттүү)</span></label>
+                    <div class="camera-section">
+                        <button type="button" id="startCamera" class="btn-secondary">
+                            📷 Камераны иштетүү
+                        </button>
+                        
+                        <video id="cameraPreview" width="320" height="240" autoplay 
+                               style="border: 1px solid #ccc; border-radius: 5px; display:none; margin-top: 10px;"></video>
+                        
+                        <div class="camera-buttons" style="margin-top: 10px;">
+                            <button type="button" id="capturePhoto" class="btn-secondary" disabled>
+                                🖼️ Сүрөткө түшүрүү
+                            </button>
+                            <button type="button" id="stopCamera" class="btn-secondary" disabled>
+                                ⏹️ Токтотуу
+                            </button>
+                        </div>
+                    </div>
+                    <canvas id="photoCanvas" style="display:none;"></canvas>
+                    <input type="hidden" name="photo_base64" id="photoBase64">
+                    <div id="photoPreview"></div>
+                    <!-- FIX критикалык #1: сүрөт жок болсо кызыл эскертүү -->
+                    <p id="photoError" style="display:none; color:#f44336; margin-top:5px; font-size:13px;">
+                        ⚠️ Сүрөткө түшүү милдеттүү!
+                    </p>
+                </div>
+                
+                <div class="form-group">
+                    <!-- FIX тил #2: label аталышы -->
+                    <label>Кечигүүнүн себеби (эгер кечиксеңиз)</label>
+                    <textarea name="comment" id="comment" rows="3" 
+                              placeholder="Себебиңизди жазыңыз... (мис.: унаа кечиктирди, ооруп калдым ж.б.)"></textarea>
+                    <!-- FIX тил #3: small текст -->
+                    <small class="text-muted">08:00дон кийин келсеңиз, кечигүүнүн себебин жазуу милдеттүү</small>
+                </div>
+                
+                <button type="submit" class="btn-primary">
+                    Келүүнү каттоо
+                </button>
+            </form>
+        {% endif %}
+    </div>
+    
+    <!-- Келүү тарыхы -->
+    <div class="card" style="margin-top: 30px;">
+        <h2>Келүү тарыхы</h2>
+        <p>Келүү жазуулары катталган (акыркы 20 күн)</p>
+        
+        {% if attendance_history %}
+        <table class="attendance-table">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Келүү убактысы</th>
+                    <th>Статус</th>
+                    <th>Сүрөт</th>
+                    <th>Комментарий</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attendance in attendance_history %}
+                <tr>
+                    <td>{{ attendance.date|date:"d.m.Y" }}</td>
+                    <td>{{ attendance.arrival_time }}</td>
+                    <td>
+                        {% if attendance.late %}
+                            <span class="badge late">Кечикти</span>
+                        {% else %}
+                            <span class="badge on-time">Убактылуу</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if attendance.photo %}
+                            <a href="{{ attendance.photo.url }}" target="_blank" class="photo-link">👁️</a>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>{{ attendance.comment|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <div class="no-data">
+                <p>Келүү тарыхы жок</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+ 
+<style>
+    .attendance-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .card {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .card h2 {
+        margin-top: 0;
+        color: #333;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 10px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    @media (max-width: 600px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .form-group input, .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        box-sizing: border-box;
+    }
+    
+    .btn-secondary {
+        background: #f0f0f0;
+        border: 1px solid #ddd;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-right: 10px;
+        font-size: 14px;
+    }
+    
+    .btn-secondary:hover {
+        background: #e0e0e0;
+    }
+    
+    .btn-primary {
+        background: #2196F3;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+    }
+    
+    .btn-primary:hover {
+        background: #1976D2;
+    }
+    
+    .already-recorded {
+        background: #e8f5e9;
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid #4caf50;
+    }
+    
+    .alert {
+        padding: 12px 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    
+    .alert.success {
+        background: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #4caf50;
+    }
+    
+    .alert.error {
+        background: #ffebee;
+        color: #c62828;
+        border: 1px solid #f44336;
+    }
+    
+    .attendance-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    
+    .attendance-table th {
+        background: #f8f9fa;
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: bold;
+    }
+    
+    .attendance-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        display: inline-block;
+    }
+    
+    .badge.late {
+        background: #ffebee;
+        color: #d32f2f;
+    }
+    
+    .badge.on-time {
+        background: #e8f5e9;
+        color: #388e3c;
+    }
+    
+    .photo-link {
+        color: #2196F3;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    
+    .photo-link:hover {
+        text-decoration: underline;
+    }
+    
+    .no-data {
+        text-align: center;
+        color: #666;
+        padding: 40px 0;
+    }
+    
+    .text-muted {
+        color: #666;
+        font-size: 12px;
+    }
+</style>
+ 
+<script>
+    // FIX логика #2: убакытты жана датаны браузерден алабыз (timezone туура болсун)
+    window.addEventListener('DOMContentLoaded', function() {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('arrivalTime').value = hh + ':' + mm;
+ 
+        const dd = String(now.getDate()).padStart(2, '0');
+        const mo = String(now.getMonth() + 1).padStart(2, '0');
+        const yyyy = now.getFullYear();
+        document.getElementById('currentDate').value = dd + '.' + mo + '.' + yyyy;
+ 
+        // Баштапкы убакыт текшерүүсү
+        checkLate(hh, mm);
+    });
+ 
+    function checkLate(hh, mm) {
+        const hours = parseInt(hh);
+        const minutes = parseInt(mm);
+        if (hours > 8 || (hours === 8 && minutes > 0)) {
+            document.getElementById('lateWarning').style.display = 'block';
+        } else {
+            document.getElementById('lateWarning').style.display = 'none';
+        }
+    }
+ 
+    // Убакыт өзгөргөндө текшерүү
+    document.getElementById('arrivalTime').addEventListener('change', function() {
+        const [hh, mm] = this.value.split(':');
+        checkLate(hh, mm);
+    });
+    
+    // Камера иштетүү
+    let cameraStream = null;
+    let photoTaken = false;
+    
+    document.getElementById('startCamera').addEventListener('click', async function() {
+        try {
+            // FIX критикалык #5: ideal колдонуп, ноутбук/ПК'да алдыңкы камерага fallback
+            cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    facingMode: { ideal: 'environment' },
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                } 
+            });
+            const video = document.getElementById('cameraPreview');
+            video.style.display = 'block';
+            video.srcObject = cameraStream;
+            document.getElementById('capturePhoto').disabled = false;
+            document.getElementById('stopCamera').disabled = false;
+            this.disabled = true;
+            document.getElementById('photoError').style.display = 'none';
+        } catch (error) {
+            alert('Камера иштей албады: ' + error.message);
+        }
+    });
+    
+    // Сүрөткө түшүрүү
+    document.getElementById('capturePhoto').addEventListener('click', function() {
+        const video = document.getElementById('cameraPreview');
+        const canvas = document.getElementById('photoCanvas');
+        const context = canvas.getContext('2d');
+        
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0);
+        
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        document.getElementById('photoBase64').value = imageData;
+        photoTaken = true;
+ 
+        document.getElementById('photoPreview').innerHTML = `
+            <div style="margin-top: 15px;">
+                <img src="${imageData}" style="max-width: 200px; border-radius: 5px; border: 2px solid #4caf50;">
+                <p style="color: #4caf50; margin-top: 5px; font-weight: bold;">✅ Сүрөткө түшүрүлдү!</p>
+            </div>
+        `;
+        document.getElementById('photoError').style.display = 'none';
+    });
+    
+    // FIX логика #1: камераны токтотуудан мурун сүрөт алынганын текшерүү
+    document.getElementById('stopCamera').addEventListener('click', function() {
+        if (!photoTaken) {
+            const confirm = window.confirm('Сүрөт али алынган жок. Камераны токтотосузбу?');
+            if (!confirm) return;
+        }
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            document.getElementById('cameraPreview').style.display = 'none';
+            document.getElementById('cameraPreview').srcObject = null;
+            document.getElementById('startCamera').disabled = false;
+            document.getElementById('capturePhoto').disabled = true;
+            this.disabled = true;
+            cameraStream = null;
+        }
+    });
+    
+    // FIX критикалык #2: форма жөнөтүүдө сүрөт текшерүү кошулды
+    document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+        const timeInput = document.getElementById('arrivalTime');
+        const [hh, mm] = timeInput.value.split(':').map(Number);
+        const isLate = (hh > 8) || (hh === 8 && mm > 0);
+        const comment = document.getElementById('comment').value.trim();
+        const photo = document.getElementById('photoBase64').value;
+ 
+        // Сүрөт текшерүү — МИЛДЕТТҮҮ
+        if (!photo) {
+            e.preventDefault();
+            document.getElementById('photoError').style.display = 'block';
+            document.getElementById('photoError').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+ 
+        // FIX тил #3: alert текстин оңдодук
+        if (isLate && !comment) {
+            e.preventDefault();
+            alert('Кечигүүнүн себебин жазыңыз!');
+            document.getElementById('comment').focus();
+            return false;
+        }
+        
+        return true;
+    });
+</script>
+{% endblock %}

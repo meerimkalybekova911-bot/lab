@@ -1,0 +1,97 @@
+.inventory-page {
+    padding: 24px;
+}
+
+.inventory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.inventory-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: #2563eb;
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.inventory-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.inventory-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.inventory-table thead {
+    background: #f8fafc;
+}
+
+.inventory-table th,
+.inventory-table td {
+    padding: 12px 14px;
+    font-size: 14px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+}
+
+.inventory-table tr:hover {
+    background: #f9fafb;
+}
+
+/* Статустар */
+.status {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status.good {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.status.medium {
+   _btch: #fef9c3;
+    color: #a16207;
+}
+
+.status.bad {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* Иш-аракеттер */
+.actions a {
+    margin-right: 8px;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.actions .edit {
+    color: #2563eb;
+}
+
+.actions .delete {
+    color: #dc2626;
+}
+
+.empty {
+    text-align: center;
+    color: #9ca3af;
+}

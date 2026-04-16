@@ -1,0 +1,118 @@
+/* Жалпы контейнер */
+.issues-wrapper {
+    display: flex;
+    height: calc(100vh - 60px);
+    background: #f5f6fa;
+}
+
+/* Сол панель — көйгөйлөр тизмеси */
+.issues-list {
+    width: 320px;
+    background: #ffffff;
+    border-right: 1px solid #e0e0e0;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.issues-list h3 {
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+.issues-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.issues-list li {
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
+
+.issues-list li a {
+    display: block;
+    padding: 10px;
+    text-decoration: none;
+    color: #333;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.issues-list li a:hover {
+    background: #f0f4ff;
+}
+
+/* Тандалган көйгөй */
+.issues-list li.selected a {
+    background: #e6f4ff;
+    border-left: 4px solid #1677ff;
+}
+
+/* ЖАҢЫ бейдж */
+.new {
+    background: #ff4d4f;
+    color: white;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 5px;
+}
+
+/* Оң панель — толук маалымат */
+.issue-detail {
+    flex: 1;
+    padding: 30px;
+    background: #ffffff;
+}
+
+.issue-detail h3 {
+    margin-bottom: 20px;
+}
+
+.issue-detail p {
+    margin: 8px 0;
+    font-size: 15px;
+}
+
+/* Статус блогу */
+.issue-detail h4 {
+    margin-top: 30px;
+    margin-bottom: 15px;
+}
+
+/* Формалар катар-катар турушу үчүн */
+.issue-detail form {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+/* Статус кнопкалар */
+.status-btn {
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: phone;
+    color: white;
+}
+
+/* Көрдүм */
+.status-btn.seen {
+    background: #1677ff;
+}
+
+/* Иш жүрүп жатат */
+.status-btn.working {
+    background: #faad14;
+}
+
+/* Жөндөлдү */
+.status-btn.fixed {
+    background: #52c41a;
+}
+
+/* Hover эффект */
+.status-btn:hover {
+    opacity: 0.9;
+}
