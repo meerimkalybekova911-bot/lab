@@ -1,0 +1,134 @@
+{% extends 'accounts/base_laborant.html' %}
+{% block title %}{% if editing %}Иш планды өзгөртүү{% else %}Жаңы иш план{% endif %}{% endblock %}
+ 
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+ 
+    <div class="d-flex align-items-center gap-3 mb-4">
+      <a href="{% url 'daily_plans_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Артка
+      </a>
+      <h4 class="mb-0">
+        {% if editing %}
+          Иш планды өзгөртүү — {{ plan.get_course_display }}, {{ plan.day_number }}-күн
+        {% else %}
+          Жаңы күнүмдүк иш план
+        {% endif %}
+      </h4>
+    </div>
+ 
+    <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+      <div class="card-body p-4">
+ 
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+ 
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+ 
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-500">
+                Курс <span class="text-danger">*</span>
+              </label>
+              {{ form.course }}
+              {% if form.course.errors %}
+                <div class="text-danger small mt-1">{{ form.course.errors }}</div>
+              {% endif %}
+              <small class="text-muted">
+                1-курс: 12 күн · 2-курс: 36 күн · 3-курс: 48/36 күн · 4-курс: 36 күн
+              </small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-500">
+                Күн номери <span class="text-danger">*</span>
+              </label>
+              {{ form.day_number }}
+              {% if form.day_number.errors %}
+                <div class="text-danger small mt-1">{{ form.day_number.errors }}</div>
+              {% endif %}
+              <small class="text-muted">Практиканын нечинчи иш күнүнүн планы</small>
+            </div>
+          </div>
+ 
+          <div class="mb-3">
+            <label class="form-label fw-500">
+              Аталышы <span class="text-danger">*</span>
+            </label>
+            {{ form.title }}
+            {% if form.title.errors %}
+              <div class="text-danger small mt-1">{{ form.title.errors }}</div>
+            {% endif %}
+          </div>
+ 
+          <div class="mb-3">
+            <label class="form-label fw-500">
+              Мазмуну <span class="text-danger">*</span>
+            </label>
+            {{ form.description }}
+            {% if form.description.errors %}
+              <div class="text-danger small mt-1">{{ form.description.errors }}</div>
+            {% endif %}
+            <small class="text-muted">Практиканттар бул күнү эмне аткарышы керек?</small>
+          </div>
+ 
+          <div class="mb-4">
+            <label class="form-label fw-500">
+              Материал файлы <span class="text-muted">(милдеттүү эмес)</span>
+            </label>
+            {{ form.attachment }}
+            {% if form.attachment.errors %}
+              <div class="text-danger small mt-1">{{ form.attachment.errors }}</div>
+            {% endif %}
+            <small class="text-muted">PDF, Word, PowerPoint (нускамалар, тапшырмалар)</small>
+ 
+            {% if editing and plan.attachment %}
+            <div class="mt-2">
+              <small class="text-muted">
+                Учурдагы файл:
+                <a href="{{ plan.attachment.url }}" target="_blank">ачуу</a>
+              </small>
+              <div class="form-check mt-1">
+                <input type="checkbox" name="attachment-clear"
+                       id="attachment_clear" class="form-check-input">
+                <label for="attachment_clear" class="form-check-label small text-danger">
+                  Файлды өчүрүү
+                </label>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+ 
+          {% if not editing %}
+          <!-- Жаңы план кошуудан мурун эскертүү -->
+          <div class="alert alert-info py-2 px-3 mb-4" style="font-size:13px;">
+            <i class="bi bi-info-circle me-1"></i>
+            Бир курстун бир күнүндө бир гана план болот.
+            Мисалы: 1-курстун 3-күнүнүн планы мурун түзүлгөн болсо, кайра кошуу мүмкүн эмес.
+          </div>
+          {% endif %}
+ 
+          <div class="d-flex justify-content-between">
+            <a href="{% url 'daily_plans_list' %}" class="btn btn-secondary">
+              <i class="bi bi-x-circle me-1"></i> Жокко чыгаруу
+            </a>
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="bi bi-save me-1"></i>
+              {% if editing %}Сактоо{% else %}Түзүү{% endif %}
+            </button>
+          </div>
+ 
+        </form>
+      </div>
+    </div>
+ 
+  </div>
+</div>
+{% endblock %}
+ 

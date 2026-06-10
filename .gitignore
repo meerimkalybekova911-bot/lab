@@ -1,64 +1,42 @@
-venv/
-__pycache__/
-*.pyc
-db.sqlite3
-media/
-staticfiles/
-.env
-cert.key
-cert.crt
-.vscode/
-.VS/
-
 # Python
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-*.so
+.Python
 
 # Virtual environment
 venv/
 env/
-.venv/
+ENV/
 
-# Django stuff
+# Django
 *.log
+local_settings.py
 db.sqlite3
+db.sqlite3-journal
+
+# Media файлдар (колдонуучулардын жүктөгөн файлдары)
 media/
+
+# Static (collectstatic чыгарат)
 staticfiles/
+staticfiles_backup/
 
-# Environment variables
+# Environment variables — ЭЧ КАЧАН GitHub'ка жүктөбөңүз!
 .env
-.env.*
+.env.local
+.env.production
 
-# VS Code / IDE
+# VS Code
 .vscode/
-.idea/
 .vs/
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
 
-# Migrations (иногда спорно — см. ниже)
-# */migrations/*
-# !*/migrations/__init__.py
-
-# Pytest / coverage
-.coverage
-htmlcov/
-.pytest_cache/
-
-# mypy
-.mypy_cache/
-
-# node (если есть фронт)
-node_modules/
-
-# collectstatic
-/static/
-
-# secrets
-*.pem
-*.key
+# Distribution
+dist/
+build/
+*.egg-info/

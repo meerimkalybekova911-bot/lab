@@ -3,6 +3,7 @@ import csv
 import os
 import logging
 from datetime import date, datetime, timedelta
+
 from django.core.files.base import ContentFile
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import authenticate, login, logout
@@ -13,46 +14,76 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.db.models import Q
 
-from .models import Comment, LabAssistant, Project, Attendance, Computer, Room, Report, InventoryLock
-from .forms import AttendanceForm, ProjectForm, ComputerForm, ReportForm, LabAssistantProfileForm
+from .models import (
+    Comment, LabAssistant, Project, Attendance,
+    Computer, Room, Report, InventoryLock,
+    Practitioner, DailyPlan,
+    PractitionerAttendance, PlanCompletion,
+)
+from .forms import (
+    AttendanceForm, ProjectForm, ComputerForm,
+    ReportForm, LabAssistantProfileForm,
+)
 
 logger = logging.getLogger(__name__)
 
 
-# =====================
+# ─────────────────────────────────────────
+# ЖАРДАМЧЫ: Колдонуучунун ролун аныктоо
+# ─────────────────────────────────────────
+def _get_role(user):
+    """
+    'leader' | 'laborant' | 'practitioner' | None
+    """
+    try:
+        return user.labassistant.role
+    except LabAssistant.DoesNotExist:
+        pass
+    try:
+        user.practitioner
+        return 'practitioner'
+    except Practitioner.DoesNotExist:
+        pass
+    return None
+
+
+# ─────────────────────────────────────────
 # LOGIN / LOGOUT
-# =====================
+# ─────────────────────────────────────────
 def login_view(request):
     if request.user.is_authenticated:
-        try:
-            la = LabAssistant.objects.get(user=request.user)
-            return redirect('leader_dashboard' if la.role == 'leader' else 'dashboard')
-        except LabAssistant.DoesNotExist:
-            return redirect('dashboard')
+        role = _get_role(request.user)
+        if role == 'leader':
+            return redirect('leader_dashboard')
+        if role == 'practitioner':
+            return redirect('student_dashboard')
+        return redirect('dashboard')
 
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
             login(request, user)
-            try:
-                la = LabAssistant.objects.get(user=user)
-                if la.role == 'leader':
-                    messages.success(request, f"Кош келиңиз, жетекчи {la.full_name}!")
-                    return redirect('leader_dashboard')
-                else:
-                    messages.success(request, f"Кош келиңиз, лаборант {la.full_name}!")
-                    return redirect('dashboard')
-            except LabAssistant.DoesNotExist:
-                LabAssistant.objects.create(
-                    user=user,
-                    full_name=user.get_full_name() or user.username,
-                    role='laborant'
-                )
-                messages.info(request, "Сиздин профилиңиз автоматтык түрдө түзүлдү")
+            role = _get_role(user)
+            if role == 'leader':
+                messages.success(request, f"Кош келиңиз, жетекчи {user.labassistant.full_name}!")
+                return redirect('leader_dashboard')
+            if role == 'practitioner':
+                messages.success(request, f"Кош келиңиз, {user.practitioner.full_name}!")
+                return redirect('student_dashboard')
+            if role == 'laborant':
+                messages.success(request, f"Кош келиңиз, лаборант {user.labassistant.full_name}!")
                 return redirect('dashboard')
+            # Профиль жок колдонуучу
+            LabAssistant.objects.create(
+                user=user,
+                full_name=user.get_full_name() or user.username,
+                role='laborant'
+            )
+            messages.info(request, "Профилиңиз автоматтык түрдө түзүлдү")
+            return redirect('dashboard')
         else:
             messages.error(request, "Колдонуучу аты же сырсөз туура эмес!")
 
@@ -65,9 +96,9 @@ def logout_view(request):
     return redirect('login')
 
 
-# =====================
-# DASHBOARD
-# =====================
+# ─────────────────────────────────────────
+# ЛАБОРАНТ DASHBOARD
+# ─────────────────────────────────────────
 @login_required
 def dashboard_view(request):
     try:
@@ -83,9 +114,9 @@ def dashboard_view(request):
     return render(request, 'accounts/dashboard.html', {'labassistant': labassistant})
 
 
-# =====================
-# КЕЛҮҮ ЖУРНАЛЫ
-# =====================
+# ─────────────────────────────────────────
+# ЛАБОРАНТ: КЕЛҮҮ ЖУРНАЛЫ
+# ─────────────────────────────────────────
 @login_required
 def attendance_create_view(request):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
@@ -98,9 +129,9 @@ def attendance_create_view(request):
 
     if request.method == 'POST':
         if not today_attendance:
-            arrival_time  = request.POST.get('arrival_time', '').strip()
-            comment       = request.POST.get('comment', '').strip()
-            photo_base64  = request.POST.get('photo_base64', '').strip()
+            arrival_time = request.POST.get('arrival_time', '').strip()
+            comment      = request.POST.get('comment', '').strip()
+            photo_base64 = request.POST.get('photo_base64', '').strip()
 
             if not arrival_time:
                 messages.error(request, "Келүү убактысын жазыңыз")
@@ -153,40 +184,38 @@ def attendance_create_view(request):
             messages.error(request, "Бүгүнкү келүү мурунтан эле катталган")
 
     return render(request, 'accounts/attendance_page.html', {
-        'labassistant':      labassistant,
-        'today_attendance':  today_attendance,
+        'labassistant':       labassistant,
+        'today_attendance':   today_attendance,
         'attendance_history': attendance_history,
     })
 
 
-# =====================
-# ИШ ПЛАНДАР (ДОЛБООРЛОР)
-# =====================
+# ─────────────────────────────────────────
+# ИШ ПЛАНДАР
+# ─────────────────────────────────────────
 @login_required
 def projects_list_view(request):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
 
     if labassistant.role == 'leader':
-        projects = Project.objects.all()\
-            .select_related('labassistant')\
-            .prefetch_related('comments__author')\
-            .order_by('-start_date')
+        projects = Project.objects.all()
     else:
         projects = Project.objects.filter(
             Q(labassistant=labassistant) | Q(is_public=True)
-        ).select_related('labassistant')\
-         .prefetch_related('comments__author')\
-         .order_by('-start_date')
+        )
 
-    context = {
-        'labassistant':      labassistant,
-        'projects':          projects,
-        'total_projects':    projects.count(),
-        'active_projects':   projects.filter(status='active').count(),
-        'paused_projects':   projects.filter(status='paused').count(),
+    projects = projects.select_related('labassistant') \
+                       .prefetch_related('comments__author') \
+                       .order_by('-start_date')
+
+    return render(request, 'accounts/projects_list.html', {
+        'labassistant':       labassistant,
+        'projects':           projects,
+        'total_projects':     projects.count(),
+        'active_projects':    projects.filter(status='active').count(),
+        'paused_projects':    projects.filter(status='paused').count(),
         'completed_projects': projects.filter(status='completed').count(),
-    }
-    return render(request, 'accounts/projects_list.html', context)
+    })
 
 
 @login_required
@@ -267,7 +296,6 @@ def update_project_status(request, project_id):
     new_status = request.POST.get('status')
     if new_status in ['active', 'paused', 'completed']:
         project.status = new_status
-        # FIX ката #3: end_date'ти авто өчүрбөйбүз
         if new_status == 'completed' and not project.end_date:
             project.end_date = date.today()
         project.save()
@@ -295,9 +323,9 @@ def add_comment(request, project_id):
     return redirect('projects_list')
 
 
-# =====================
+# ─────────────────────────────────────────
 # ОТЧЕТТОР
-# =====================
+# ─────────────────────────────────────────
 @login_required
 def reports_list_view(request):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
@@ -324,8 +352,8 @@ def report_create_view(request):
         form = ReportForm(user=request.user)
     return render(request, 'accounts/report_form.html', {
         'labassistant': labassistant,
-        'form':         form,
-        'page_title':   'Жаңы отчет түзүү',
+        'form': form,
+        'page_title': 'Жаңы отчет түзүү',
     })
 
 
@@ -343,9 +371,9 @@ def report_update_view(request, report_id):
         form = ReportForm(instance=report, user=request.user)
     return render(request, 'accounts/report_form.html', {
         'labassistant': labassistant,
-        'form':         form,
-        'report':       report,
-        'page_title':   'Отчетту өзгөртүү',
+        'form': form,
+        'report': report,
+        'page_title': 'Отчетту өзгөртүү',
     })
 
 
@@ -370,7 +398,9 @@ def report_download_view(request, report_id):
         messages.error(request, "Файл табылган жок")
         return redirect('reports_list')
     response = FileResponse(open(report.file.path, 'rb'), as_attachment=True)
-    response['Content-Disposition'] = f'attachment; filename="{os.path.basename(report.file.path)}"'
+    response['Content-Disposition'] = (
+        f'attachment; filename="{os.path.basename(report.file.path)}"'
+    )
     return response
 
 
@@ -379,28 +409,27 @@ def export_reports_csv(request):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
     reports = Report.objects.filter(labassistant=labassistant)
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="reports_{datetime.now().strftime("%Y%m%d")}.csv"'
+    response['Content-Disposition'] = (
+        f'attachment; filename="reports_{datetime.now().strftime("%Y%m%d")}.csv"'
+    )
     writer = csv.writer(response)
     writer.writerow(['№', 'Отчеттун аты', 'Иш план', 'Түзүлгөн күнү', 'Кошумча маалымат'])
-    for i, report in enumerate(reports, 1):
+    for i, r in enumerate(reports, 1):
         writer.writerow([
-            i,
-            report.title,
-            report.project.title,
-            report.created_at.strftime('%d.%m.%Y %H:%M'),
-            report.comment[:100] if report.comment else ''
+            i, r.title, r.project.title,
+            r.created_at.strftime('%d.%m.%Y %H:%M'),
+            r.comment[:100] if r.comment else ''
         ])
     return response
 
 
-# =====================
+# ─────────────────────────────────────────
 # КОМПЬЮТЕРЛЕР
-# =====================
+# ─────────────────────────────────────────
 @login_required
 def computers_list_view(request):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
 
-    # FIX КРИТИКАЛЫК #2: locked_until жок — changed_at колдонулат
     inventory_status = {'is_locked': True}
     try:
         lock = InventoryLock.objects.first()
@@ -413,29 +442,25 @@ def computers_list_view(request):
     except Exception:
         pass
 
-    if labassistant.role == 'laborant':
-        rooms = labassistant.rooms.all().order_by('name')
-    else:
-        rooms = Room.objects.all().order_by('name')
+    rooms = (
+        labassistant.rooms.all().order_by('name')
+        if labassistant.role == 'laborant'
+        else Room.objects.all().order_by('name')
+    )
 
     selected_room_id = request.GET.get('room')
-
-    # FIX КРИТИКАЛЫК #1: rooms_with_computers берилет
-    rooms_with_computers = []
-    for room in rooms:
-        if selected_room_id and str(room.id) != selected_room_id:
-            continue
-        rooms_with_computers.append({
-            'room':      room,
-            'computers': room.computers.all(),
-        })
+    rooms_with_computers = [
+        {'room': room, 'computers': room.computers.all()}
+        for room in rooms
+        if not selected_room_id or str(room.id) == selected_room_id
+    ]
 
     return render(request, 'accounts/computers_list.html', {
-        'labassistant':          labassistant,
-        'rooms':                 rooms,
-        'rooms_with_computers':  rooms_with_computers,
-        'selected_room_id':      selected_room_id,
-        'inventory_status':      inventory_status,
+        'labassistant':         labassistant,
+        'rooms':                rooms,
+        'rooms_with_computers': rooms_with_computers,
+        'selected_room_id':     selected_room_id,
+        'inventory_status':     inventory_status,
     })
 
 
@@ -468,7 +493,6 @@ def computer_update_view(request, computer_id):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
     computer = get_object_or_404(Computer, id=computer_id)
 
-    # FIX ката #2: "өзгөртүүгА" → "өзгөртүүгө"
     if labassistant.role == 'laborant' and computer.room not in labassistant.rooms.all():
         messages.error(request, "Бул компьютерди өзгөртүүгө уруксат жок!")
         return redirect('computers_list')
@@ -519,18 +543,28 @@ def toggle_inventory_lock(request):
     return render(request, 'accounts/inventory_lock.html', {'lock': lock})
 
 
-# =====================
+# ─────────────────────────────────────────
 # ПРОФИЛЬ
-# =====================
+# ─────────────────────────────────────────
 @login_required
 def profile_view(request):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
- 
+
+    # Жок файлдарды базадан тазалоо
+    for field in ('profile_image', 'resume'):
+        file_field = getattr(labassistant, field)
+        if file_field:
+            try:
+                if not os.path.exists(file_field.path):
+                    setattr(labassistant, field, None)
+                    labassistant.save(update_fields=[field])
+            except Exception:
+                setattr(labassistant, field, None)
+                labassistant.save(update_fields=[field])
+
     if request.method == 'POST':
         form = LabAssistantProfileForm(
-            request.POST,
-            request.FILES,   # FIX: файлдар үчүн request.FILES берилет
-            instance=labassistant
+            request.POST, request.FILES, instance=labassistant
         )
         if form.is_valid():
             form.save()
@@ -540,25 +574,22 @@ def profile_view(request):
             messages.error(request, "Ката кетти. Маалыматты текшериңиз.")
     else:
         form = LabAssistantProfileForm(instance=labassistant)
- 
+
     return render(request, 'accounts/profile.html', {
-        'form':         form,
-        'labassistant': labassistant,
+        'form': form, 'labassistant': labassistant,
     })
+
 
 @login_required
 def leader_profile_view(request):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
-
     if labassistant.role != 'leader':
         messages.error(request, "Уруксат жок!")
         return redirect('dashboard')
 
     if request.method == 'POST':
         form = LabAssistantProfileForm(
-            request.POST,
-            request.FILES,
-            instance=labassistant
+            request.POST, request.FILES, instance=labassistant
         )
         if form.is_valid():
             form.save()
@@ -570,14 +601,13 @@ def leader_profile_view(request):
         form = LabAssistantProfileForm(instance=labassistant)
 
     return render(request, 'accounts/leader_profile.html', {
-        'form': form,
-        'labassistant': labassistant
+        'form': form, 'labassistant': labassistant
     })
 
 
-# =====================
+# ─────────────────────────────────────────
 # ЖЕТЕКЧИНИН ПАНЕЛИ
-# =====================
+# ─────────────────────────────────────────
 @login_required
 def leader_dashboard_view(request):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
@@ -585,7 +615,7 @@ def leader_dashboard_view(request):
         messages.error(request, "Бул баракчага кирүүгө уруксат жок!")
         return redirect('dashboard')
 
-    laborants = LabAssistant.objects.filter(role='laborant')
+    laborants = LabAssistant.objects.filter(role='laborant').prefetch_related('rooms', 'projects', 'reports', 'attendances')
     selected_laborant_id = request.GET.get('laborant', 'all')
     selected_laborant = None
     if selected_laborant_id != 'all':
@@ -602,34 +632,491 @@ def leader_dashboard_view(request):
         reports_data    = Report.objects.filter(labassistant=selected_laborant)
     else:
         attendance_data = Attendance.objects.all()
-        projects_data   = Project.objects.all()
+        projects_data   = Project.objects.all().select_related('labassistant').prefetch_related('comments__author')
         reports_data    = Report.objects.all()
 
     computers_by_laborant = {}
-    target_laborants = [selected_laborant] if selected_laborant else laborants
-    for lab in target_laborants:
+    for lab in ([selected_laborant] if selected_laborant else laborants):
         if lab.rooms.exists():
-            computers_by_laborant[lab] = {}
-            for room in lab.rooms.all():
-                qs = Computer.objects.filter(room=room)
-                if qs.exists():
-                    computers_by_laborant[lab][room] = qs
+            rooms_dict = {
+                room: Computer.objects.filter(room=room)
+                for room in lab.rooms.all()
+                if Computer.objects.filter(room=room).exists()
+            }
+            if rooms_dict:
+                computers_by_laborant[lab] = rooms_dict
+
+    # ── ПРАКТИКАНТ МААЛЫМАТТАРЫ ──────────────────────────
+    practitioners = Practitioner.objects.all().select_related(
+        'room', 'supervisor', 'user'
+    ).order_by('course', 'full_name')
+
+    # Бекитилүүнү күткөн отчёттор
+    pending_completions = PlanCompletion.objects.filter(
+        status__in=['submitted', 'lab_reviewed']
+    ).select_related('practitioner', 'plan').order_by('-submitted_at')
+
+    # Практиканттардын кечиккен келүүлөрү (акыркы 7 күн)
+    pract_late_arrivals = PractitionerAttendance.objects.filter(
+        date__gte=week_ago, late=True
+    ).select_related('practitioner').order_by('-date')[:10]
+
+    # Бүгүн келген практиканттар
+    today_pract_attendance = PractitionerAttendance.objects.filter(
+        date=date.today()
+    ).count()
 
     return render(request, 'accounts/leader_dashboard.html', {
-        'labassistant':          labassistant,
-        'laborants':             laborants,
-        'selected_laborant':     selected_laborant,
-        'selected_laborant_id':  selected_laborant_id,
-        'total_laborants':       laborants.count(),
-        # FIX КРИТИКАЛЫК #4: 'aktiv' → 'active'
-        'active_projects':       Project.objects.filter(status='active').count(),
-        'today_attendance':      Attendance.objects.filter(date=date.today()).count(),
-        'bad_computers':         Computer.objects.count(),
-        'late_arrivals':         late_arrivals,
-        'attendance_data':       attendance_data.order_by('-date'),
-        'projects_data':         projects_data.order_by('-start_date'),
-        'reports_data':          reports_data.order_by('-created_at'),
-        # FIX КРИТИКАЛЫК #3: 'number' → 'block_inv'
-        'computers_data':        Computer.objects.all().order_by('room__name', 'block_inv'),
-        'computers_by_laborant': computers_by_laborant,
+        'labassistant':            labassistant,
+        'laborants':               laborants,
+        'selected_laborant':       selected_laborant,
+        'selected_laborant_id':    selected_laborant_id,
+
+        # Статистика
+        'total_laborants':         laborants.count(),
+        'active_projects':         Project.objects.filter(status='active').count(),
+        'today_attendance':        Attendance.objects.filter(date=date.today()).count(),
+        'bad_computers':           Computer.objects.count(),
+        'late_arrivals':           late_arrivals,
+
+        # Лаборант маалыматтары
+        'attendance_data':         attendance_data.order_by('-date'),
+        'projects_data':           projects_data.order_by('-start_date'),
+        'reports_data':            reports_data.order_by('-created_at'),
+        'computers_by_laborant':   computers_by_laborant,
+
+        # Практикант маалыматтары
+        'practitioners':           practitioners,
+        'pending_completions':     pending_completions,
+        'pract_late_arrivals':     pract_late_arrivals,
+        'today_pract_attendance':  today_pract_attendance,
+        'total_practitioners':     practitioners.count(),
+        'active_practitioners':    practitioners.filter(
+            practice_start__lte=date.today(),
+            practice_end__gte=date.today()
+        ).count(),
+    })
+
+# ═══════════════════════════════════════════════════
+# ПРАКТИКАНТ СИСТЕМАСЫ
+# ═══════════════════════════════════════════════════
+
+def _practitioner_required(view_func):
+    """Практикант гана кире алат деген декоратор."""
+    @login_required
+    def wrapper(request, *args, **kwargs):
+        try:
+            practitioner = request.user.practitioner
+        except Practitioner.DoesNotExist:
+            messages.error(request, "Бул бет практиканттар үчүн гана!")
+            return redirect('login')
+        return view_func(request, *args, practitioner=practitioner, **kwargs)
+    return wrapper
+
+
+def _lab_or_leader_required(view_func):
+    """Лаборант же жетекчи гана кире алат."""
+    @login_required
+    def wrapper(request, *args, **kwargs):
+        try:
+            la = request.user.labassistant
+        except LabAssistant.DoesNotExist:
+            messages.error(request, "Уруксат жок!")
+            return redirect('login')
+        return view_func(request, *args, labassistant=la, **kwargs)
+    return wrapper
+
+
+# ─────────────────────────────────────────
+# СТУДЕНТТИН ПАНЕЛИ
+# ─────────────────────────────────────────
+@_practitioner_required
+def student_dashboard(request, practitioner):
+    today_plan = None
+    today_attendance = None
+    day = practitioner.current_work_day
+
+    if day > 0:
+        today_plan = DailyPlan.objects.filter(
+            course=practitioner.course,
+            day_number=day
+        ).first()
+
+    today_attendance = PractitionerAttendance.objects.filter(
+        practitioner=practitioner,
+        date=date.today()
+    ).first()
+
+    # Бүгүнкү иш пландын отчётун жиберди беле?
+    today_completion = None
+    if today_plan:
+        today_completion = PlanCompletion.objects.filter(
+            practitioner=practitioner,
+            plan=today_plan
+        ).first()
+
+    return render(request, 'accounts/student_dashboard.html', {
+        'practitioner':     practitioner,
+        'today_plan':       today_plan,
+        'today_attendance': today_attendance,
+        'today_completion': today_completion,
+        'current_day':      day,
+    })
+
+
+# ─────────────────────────────────────────
+# СТУДЕНТ: КЕЛҮҮ КАТТОО
+# ─────────────────────────────────────────
+@_practitioner_required
+def student_attendance(request, practitioner):
+    today_att = PractitionerAttendance.objects.filter(
+        practitioner=practitioner,
+        date=date.today()
+    ).first()
+
+    history = PractitionerAttendance.objects.filter(
+        practitioner=practitioner
+    ).order_by('-date')[:20]
+
+    if request.method == 'POST' and not today_att:
+        arrival_time = request.POST.get('arrival_time', '').strip()
+        comment      = request.POST.get('comment', '').strip()
+        photo_base64 = request.POST.get('photo_base64', '').strip()
+
+        if not arrival_time:
+            messages.error(request, "Келүү убактысын жазыңыз")
+            return redirect('student_attendance')
+        try:
+            h, m = map(int, arrival_time.split(':'))
+            if not (0 <= h <= 23 and 0 <= m <= 59):
+                raise ValueError
+        except (ValueError, AttributeError):
+            messages.error(request, "Убакыт туура эмес форматта (ЧЧ:ММ)")
+            return redirect('student_attendance')
+
+        is_late = (h > 8) or (h == 8 and m > 0)
+
+        if not photo_base64 or not photo_base64.startswith('data:image'):
+            messages.error(request, "Сүрөт тартуу милдеттүү!")
+            return redirect('student_attendance')
+        if len(photo_base64) > 5 * 1024 * 1024:
+            messages.error(request, "Сүрөт өтө чоң (макс. 5MB)")
+            return redirect('student_attendance')
+        if is_late and not comment:
+            messages.error(request, "Кечигүүнүн себебин жазыңыз")
+            return redirect('student_attendance')
+
+        photo = None
+        try:
+            fmt, imgstr = photo_base64.split(';base64,')
+            ext = fmt.split('/')[-1]
+            if ext.lower() not in ('jpeg', 'jpg', 'png', 'webp'):
+                ext = 'jpg'
+            photo = ContentFile(
+                base64.b64decode(imgstr),
+                name=f'pract_{date.today()}_{practitioner.id}.{ext}'
+            )
+        except (ValueError, base64.binascii.Error):
+            messages.error(request, "Сүрөт туура эмес форматта, кайра тартыңыз")
+            return redirect('student_attendance')
+
+        PractitionerAttendance.objects.create(
+            practitioner=practitioner,
+            date=date.today(),
+            arrival_time=arrival_time,
+            photo=photo,
+            comment=comment,
+            late=is_late
+        )
+        messages.success(request, "Келүү катталды!")
+        return redirect('student_dashboard')
+
+    return render(request, 'accounts/student_attendance.html', {
+        'practitioner': practitioner,
+        'today_att':    today_att,
+        'history':      history,
+    })
+
+
+# ─────────────────────────────────────────
+# СТУДЕНТ: КҮНҮМДҮК ИШ ПЛАН
+# ─────────────────────────────────────────
+@_practitioner_required
+def student_plans(request, practitioner):
+    """Практиканттын курсуна тиешелүү бардык иш пландар."""
+    plans = DailyPlan.objects.filter(
+        course=practitioner.course
+    ).order_by('day_number')
+
+    # Ар бир планга отчёт статусун кошуу
+    completions = {
+        c.plan_id: c
+        for c in PlanCompletion.objects.filter(practitioner=practitioner)
+    }
+
+    plans_with_status = [
+        {
+            'plan':       plan,
+            'completion': completions.get(plan.id),
+            'is_today':   plan.day_number == practitioner.current_work_day,
+        }
+        for plan in plans
+    ]
+
+    return render(request, 'accounts/student_plans.html', {
+        'practitioner':      practitioner,
+        'plans_with_status': plans_with_status,
+        'current_day':       practitioner.current_work_day,
+    })
+
+
+# ─────────────────────────────────────────
+# СТУДЕНТ: ОТЧЁТ ЖҮКТӨӨ
+# ─────────────────────────────────────────
+@_practitioner_required
+def student_submit_report(request, practitioner, plan_id):
+    plan = get_object_or_404(DailyPlan, id=plan_id, course=practitioner.course)
+
+    # Мурда жиберилген отчёт бар болсо
+    existing = PlanCompletion.objects.filter(
+        practitioner=practitioner, plan=plan
+    ).first()
+
+    # Кайтарылган отчётту кайра жиберүүгө болот
+    if existing and existing.status not in ('rejected',):
+        messages.info(request, "Бул иш пландын отчёту мурунтан жиберилген.")
+        return redirect('student_plans')
+
+    if request.method == 'POST':
+        report_text = request.POST.get('report_text', '').strip()
+        attachment  = request.FILES.get('attachment')
+
+        if not report_text:
+            messages.error(request, "Отчёт текстин жазыңыз")
+            return redirect('student_submit_report', plan_id=plan_id)
+
+        if existing:
+            # Кайтарылган → кайра жиберүү
+            existing.report_text  = report_text
+            existing.status       = 'submitted'
+            existing.attachment   = attachment or existing.attachment
+            existing.submitted_at = timezone.now()
+            existing.leader_approved    = False
+            existing.leader_feedback    = ''
+            existing.lab_feedback       = ''
+            existing.save()
+            messages.success(request, "Отчёт кайра жиберилди!")
+        else:
+            PlanCompletion.objects.create(
+                practitioner=practitioner,
+                plan=plan,
+                report_text=report_text,
+                attachment=attachment,
+            )
+            messages.success(request, "Отчёт ийгиликтүү жиберилди!")
+
+        return redirect('student_plans')
+
+    return render(request, 'accounts/student_submit_report.html', {
+        'practitioner': practitioner,
+        'plan':         plan,
+        'existing':     existing,
+    })
+
+
+# ─────────────────────────────────────────
+# ЛАБОРАНТ: ПРАКТИКАНТТАР ТИЗМЕСИ
+# ─────────────────────────────────────────
+@_lab_or_leader_required
+def practitioners_list(request, labassistant):
+    if labassistant.role == 'leader':
+        practitioners = Practitioner.objects.all()
+    else:
+        practitioners = Practitioner.objects.filter(supervisor=labassistant)
+
+    practitioners = practitioners.select_related('room', 'supervisor') \
+                                 .order_by('course', 'full_name')
+
+    # Курс боюнча чыпкалоо
+    course_filter = request.GET.get('course')
+    if course_filter:
+        practitioners = practitioners.filter(course=course_filter)
+
+    return render(request, 'accounts/practitioners_list.html', {
+        'labassistant':  labassistant,
+        'practitioners': practitioners,
+        'course_filter': course_filter,
+        'total':         practitioners.count(),
+    })
+
+
+# ─────────────────────────────────────────
+# ЛАБОРАНТ: ПРАКТИКАНТТЫН ДЕТАЛДАРЫ
+# ─────────────────────────────────────────
+@_lab_or_leader_required
+def practitioner_detail(request, labassistant, practitioner_id):
+    if labassistant.role == 'leader':
+        practitioner = get_object_or_404(Practitioner, id=practitioner_id)
+    else:
+        practitioner = get_object_or_404(
+            Practitioner, id=practitioner_id, supervisor=labassistant
+        )
+
+    attendances  = practitioner.attendances.order_by('-date')
+    completions  = practitioner.completions.select_related('plan').order_by('-submitted_at')
+
+    return render(request, 'accounts/practitioner_detail.html', {
+        'labassistant':  labassistant,
+        'practitioner':  practitioner,
+        'attendances':   attendances,
+        'completions':   completions,
+    })
+
+
+# ─────────────────────────────────────────
+# ЛАБОРАНТ: ОТЧЁТТУ ТЕКШЕРҮҮ
+# ─────────────────────────────────────────
+@_lab_or_leader_required
+@require_POST
+def lab_review_completion(request, labassistant, completion_id):
+    if labassistant.role == 'leader':
+        completion = get_object_or_404(PlanCompletion, id=completion_id)
+    else:
+        completion = get_object_or_404(
+            PlanCompletion,
+            id=completion_id,
+            practitioner__supervisor=labassistant
+        )
+
+    action   = request.POST.get('action')  # 'approve' | 'reject'
+    feedback = request.POST.get('feedback', '').strip()
+
+    if action == 'approve':
+        completion.status         = 'lab_reviewed'
+        completion.lab_checked    = labassistant
+        completion.lab_feedback   = feedback
+        completion.lab_checked_at = timezone.now()
+        completion.save()
+        messages.success(request, "Отчёт текшерилди. Жетекчи бекитүүсүн күтүүдө.")
+    elif action == 'reject':
+        completion.status         = 'rejected'
+        completion.lab_checked    = labassistant
+        completion.lab_feedback   = feedback
+        completion.lab_checked_at = timezone.now()
+        completion.save()
+        messages.warning(request, "Отчёт кайтарылды. Студент кайра жиберет.")
+    else:
+        messages.error(request, "Жарамсыз аракет")
+
+    return redirect('practitioner_detail', practitioner_id=completion.practitioner_id)
+
+
+# ─────────────────────────────────────────
+# ЖЕТЕКЧИ: ОТЧЁТТУ БЕКИТҮҮ
+# ─────────────────────────────────────────
+@login_required
+@require_POST
+def leader_approve_completion(request, completion_id):
+    labassistant = get_object_or_404(LabAssistant, user=request.user)
+    if labassistant.role != 'leader':
+        messages.error(request, "Уруксат жок!")
+        return redirect('dashboard')
+
+    completion = get_object_or_404(
+        PlanCompletion, id=completion_id, status='lab_reviewed'
+    )
+    action   = request.POST.get('action')
+    feedback = request.POST.get('feedback', '').strip()
+
+    if action == 'approve':
+        completion.leader_approved    = True
+        completion.status             = 'approved'
+        completion.leader_feedback    = feedback
+        completion.leader_approved_at = timezone.now()
+        completion.save()
+        messages.success(request, "Отчёт бекитилди!")
+    elif action == 'reject':
+        completion.leader_approved    = False
+        completion.status             = 'rejected'
+        completion.leader_feedback    = feedback
+        completion.leader_approved_at = timezone.now()
+        completion.save()
+        messages.warning(request, "Отчёт кайтарылды.")
+
+    return redirect('practitioner_detail', practitioner_id=completion.practitioner_id)
+
+
+# ─────────────────────────────────────────
+# ЛАБОРАНТ: КҮНҮМДҮК ИШ ПЛАНДАР
+# ─────────────────────────────────────────
+@_lab_or_leader_required
+def daily_plans_list(request, labassistant):
+    course_filter = request.GET.get('course')
+    plans = DailyPlan.objects.all().order_by('course', 'day_number')
+    if course_filter:
+        plans = plans.filter(course=course_filter)
+
+    return render(request, 'accounts/daily_plans_list.html', {
+        'labassistant':  labassistant,
+        'plans':         plans,
+        'course_filter': course_filter,
+    })
+
+
+@_lab_or_leader_required
+def daily_plan_create(request, labassistant):
+    if request.method == 'POST':
+        course      = request.POST.get('course')
+        day_number  = request.POST.get('day_number')
+        title       = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        attachment  = request.FILES.get('attachment')
+
+        if not all([course, day_number, title, description]):
+            messages.error(request, "Бардык талааларды толтуруңуз!")
+            return redirect('daily_plan_create')
+
+        # Бул курстун бул күнү мурун бар болсо — ката
+        if DailyPlan.objects.filter(course=course, day_number=day_number).exists():
+            messages.error(
+                request,
+                f"{course}-курстун {day_number}-күнүнүн иш планы мурунтан бар!"
+            )
+            return redirect('daily_plan_create')
+
+        DailyPlan.objects.create(
+            course=course,
+            day_number=day_number,
+            title=title,
+            description=description,
+            attachment=attachment,
+            created_by=labassistant,
+        )
+        messages.success(request, "Иш план түзүлдү!")
+        return redirect('daily_plans_list')
+
+    return render(request, 'accounts/daily_plan_form.html', {
+        'labassistant': labassistant, 'editing': False
+    })
+
+
+@_lab_or_leader_required
+def daily_plan_update(request, labassistant, plan_id):
+    plan = get_object_or_404(DailyPlan, id=plan_id)
+
+    if request.method == 'POST':
+        plan.title       = request.POST.get('title', '').strip()
+        plan.description = request.POST.get('description', '').strip()
+        attachment = request.FILES.get('attachment')
+        if attachment:
+            plan.attachment = attachment
+        if request.POST.get('attachment-clear') and plan.attachment:
+            plan.attachment.delete(save=False)
+            plan.attachment = None
+        plan.save()
+        messages.success(request, "Иш план жаңыртылды!")
+        return redirect('daily_plans_list')
+
+    return render(request, 'accounts/daily_plan_form.html', {
+        'labassistant': labassistant, 'plan': plan, 'editing': True
     })

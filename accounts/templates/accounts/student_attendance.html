@@ -1,0 +1,200 @@
+{% extends 'accounts/base_student.html' %}
+{% block title %}Келүү каттоо{% endblock %}
+ 
+{% block content %}
+<div class="row g-4">
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+      <div class="card-body p-4">
+        <h5 class="mb-1">Бүгүнкү келүүнү каттоо</h5>
+        <p class="text-muted small mb-4">Бүгүнкү келген убакытыңызды каттаңыз</p>
+ 
+        {% if today_att %}
+          <div class="alert alert-success">
+            <h6 class="mb-1">✅ Бүгүн катталган</h6>
+            <p class="mb-0"><strong>Убакты:</strong> {{ today_att.arrival_time }}</p>
+            {% if today_att.late %}
+              <span class="badge bg-danger mt-1">Кечикти</span>
+            {% else %}
+              <span class="badge bg-success mt-1">Убактылуу</span>
+            {% endif %}
+          </div>
+        {% else %}
+          <form method="post" id="attendanceForm">
+            {% csrf_token %}
+ 
+            <div class="row mb-3">
+              <div class="col-6">
+                <label class="form-label fw-500">Келүү убактысы *</label>
+                <input type="time" name="arrival_time" id="arrivalTime"
+                       class="form-control" required>
+                <div id="lateWarning" class="text-danger small mt-1" style="display:none;">
+                  ⚠️ 08:00дөн кийин — кечигүү катталат
+                </div>
+              </div>
+              <div class="col-6">
+                <label class="form-label fw-500">Дата</label>
+                <input type="text" id="currentDate" class="form-control" disabled>
+              </div>
+            </div>
+ 
+            <!-- Сүрөт -->
+            <div class="mb-3">
+              <label class="form-label fw-500">Сүрөт * <span class="text-danger">(милдеттүү)</span></label>
+              <div class="d-flex gap-2 mb-2 flex-wrap">
+                <button type="button" id="startCamera" class="btn btn-outline-secondary btn-sm">
+                  <i class="bi bi-camera"></i> Камераны иштетүү
+                </button>
+                <button type="button" id="capturePhoto" class="btn btn-outline-success btn-sm" disabled>
+                  <i class="bi bi-camera-fill"></i> Сүрөткө түшүрүү
+                </button>
+                <button type="button" id="stopCamera" class="btn btn-outline-danger btn-sm" disabled>
+                  <i class="bi bi-stop-circle"></i> Токтотуу
+                </button>
+              </div>
+              <video id="cameraPreview" autoplay
+                     style="display:none; width:100%; max-width:320px; border-radius:8px; border:1px solid #dee2e6;"></video>
+              <canvas id="photoCanvas" style="display:none;"></canvas>
+              <input type="hidden" name="photo_base64" id="photoBase64">
+              <div id="photoPreview"></div>
+              <div id="photoError" class="text-danger small mt-1" style="display:none;">
+                ⚠️ Сүрөткө түшүү милдеттүү!
+              </div>
+            </div>
+ 
+            <!-- Кечигүү себеби -->
+            <div class="mb-3" id="commentSection" style="display:none;">
+              <label class="form-label fw-500">Кечигүүнүн себеби *</label>
+              <textarea name="comment" id="comment" rows="3" class="form-control"
+                        placeholder="Себебиңизди жазыңыз... (мис.: унаа кечиктирди)"></textarea>
+            </div>
+ 
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-check-circle me-1"></i> Келүүнү каттоо
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+ 
+  <!-- Тарых -->
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+      <div class="card-body p-4">
+        <h6 class="text-muted mb-3">Келүү тарыхы</h6>
+        {% if history %}
+        <div style="max-height: 400px; overflow-y: auto;">
+          {% for att in history %}
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div>
+              <div style="font-size: 14px;">{{ att.date|date:"d.m.Y" }}</div>
+              <div class="text-muted" style="font-size: 12px;">{{ att.arrival_time }}</div>
+            </div>
+            {% if att.late %}
+              <span class="badge bg-danger">Кечикти</span>
+            {% else %}
+              <span class="badge bg-success">Убактылуу</span>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+          <p class="text-muted text-center py-3">Тарых жок</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Убакыт жана дата
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  document.getElementById('arrivalTime').value = hh + ':' + mm;
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mo = String(now.getMonth() + 1).padStart(2, '0');
+  document.getElementById('currentDate').value = dd + '.' + mo + '.' + now.getFullYear();
+  checkLate(hh, mm);
+});
+ 
+function checkLate(hh, mm) {
+  const h = parseInt(hh), m = parseInt(mm);
+  const late = h > 8 || (h === 8 && m > 0);
+  document.getElementById('lateWarning').style.display  = late ? 'block' : 'none';
+  document.getElementById('commentSection').style.display = late ? 'block' : 'none';
+}
+ 
+document.getElementById('arrivalTime').addEventListener('change', function () {
+  const [hh, mm] = this.value.split(':');
+  checkLate(hh, mm);
+});
+ 
+// Камера
+let stream = null, photoTaken = false;
+ 
+document.getElementById('startCamera').addEventListener('click', async function () {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 } }
+    });
+    const video = document.getElementById('cameraPreview');
+    video.srcObject = stream;
+    video.style.display = 'block';
+    this.disabled = true;
+    document.getElementById('capturePhoto').disabled = false;
+    document.getElementById('stopCamera').disabled = false;
+    document.getElementById('photoError').style.display = 'none';
+  } catch (e) {
+    alert('Камера иштей албады: ' + e.message);
+  }
+});
+ 
+document.getElementById('capturePhoto').addEventListener('click', function () {
+  const video  = document.getElementById('cameraPreview');
+  const canvas = document.getElementById('photoCanvas');
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const img = canvas.toDataURL('image/jpeg', 0.8);
+  document.getElementById('photoBase64').value = img;
+  photoTaken = true;
+  document.getElementById('photoPreview').innerHTML = `
+    <div class="mt-2">
+      <img src="${img}" style="max-width:160px; border-radius:8px; border:2px solid #198754;">
+      <div class="text-success small mt-1">✅ Сүрөт тартылды</div>
+    </div>`;
+  document.getElementById('photoError').style.display = 'none';
+});
+ 
+document.getElementById('stopCamera').addEventListener('click', function () {
+  if (!photoTaken && !confirm('Сүрөт тартылган жок. Камераны токтотосузбу?')) return;
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    document.getElementById('cameraPreview').style.display = 'none';
+    document.getElementById('startCamera').disabled = false;
+    document.getElementById('capturePhoto').disabled = true;
+    this.disabled = true;
+    stream = null;
+  }
+});
+ 
+document.getElementById('attendanceForm').addEventListener('submit', function (e) {
+  if (!document.getElementById('photoBase64').value) {
+    e.preventDefault();
+    document.getElementById('photoError').style.display = 'block';
+    document.getElementById('photoError').scrollIntoView({ behavior: 'smooth' });
+    return false;
+  }
+  const [hh, mm] = document.getElementById('arrivalTime').value.split(':').map(Number);
+  const isLate = hh > 8 || (hh === 8 && mm > 0);
+  if (isLate && !document.getElementById('comment').value.trim()) {
+    e.preventDefault();
+    alert('Кечигүүнүн себебин жазыңыз!');
+    document.getElementById('comment').focus();
+  }
+});
+</script>
+{% endblock %}

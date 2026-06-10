@@ -1,0 +1,109 @@
+{% extends 'accounts/base_laborant.html' %}
+{% block title %}Практиканттар{% endblock %}
+ 
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">Практиканттар</h4>
+  <span class="badge bg-primary fs-6">Жалпы: {{ total }}</span>
+</div>
+ 
+<!-- Курс боюнча чыпкалоо -->
+<div class="card mb-4 border-0 shadow-sm">
+  <div class="card-body py-2 d-flex flex-wrap gap-2 align-items-center">
+    <span class="text-muted small me-1">Курс:</span>
+    <a href="{% url 'practitioners_list' %}"
+       class="btn btn-sm {% if not course_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">
+      Бардыгы
+    </a>
+    <a href="?course=1" class="btn btn-sm {% if course_filter == '1' %}btn-primary{% else %}btn-outline-primary{% endif %}">1-курс</a>
+    <a href="?course=2" class="btn btn-sm {% if course_filter == '2' %}btn-primary{% else %}btn-outline-primary{% endif %}">2-курс</a>
+    <a href="?course=3" class="btn btn-sm {% if course_filter == '3' %}btn-primary{% else %}btn-outline-primary{% endif %}">3-курс</a>
+    <a href="?course=4" class="btn btn-sm {% if course_filter == '4' %}btn-primary{% else %}btn-outline-primary{% endif %}">4-курс</a>
+  </div>
+</div>
+ 
+{% if practitioners %}
+<div class="row g-3">
+  {% for pract in practitioners %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+      <div class="card-body p-4">
+        <div class="d-flex gap-3 align-items-start">
+ 
+          <!-- Сүрөт -->
+          <div style="width:52px; height:52px; border-radius:50%; background:#e2e8f0;
+                      display:flex; align-items:center; justify-content:center;
+                      overflow:hidden; flex-shrink:0;">
+            {% if pract.photo %}
+              <img src="{{ pract.photo.url }}" style="width:100%; height:100%; object-fit:cover;"
+                   onerror="this.style.display='none'">
+            {% else %}
+              <i class="bi bi-person text-secondary" style="font-size:22px;"></i>
+            {% endif %}
+          </div>
+ 
+          <div class="flex-grow-1 min-w-0">
+            <div class="fw-600 mb-0" style="font-size:15px;">{{ pract.full_name }}</div>
+            <div class="text-muted small">
+              {{ pract.get_course_display }} · {{ pract.group }}
+            </div>
+            {% if pract.university %}
+              <div class="text-muted" style="font-size:12px;">{{ pract.university }}</div>
+            {% endif %}
+          </div>
+        </div>
+ 
+        <hr class="my-3">
+ 
+        <div class="row g-2 text-center mb-3">
+          <div class="col-4">
+            <div class="fw-600" style="font-size:18px; color:#0d6efd;">
+              {{ pract.current_work_day }}
+            </div>
+            <div class="text-muted" style="font-size:11px;">Иш күн</div>
+          </div>
+          <div class="col-4">
+            <div class="fw-600" style="font-size:18px; color:#198754;">
+              {{ pract.attendances.count }}
+            </div>
+            <div class="text-muted" style="font-size:11px;">Келүү</div>
+          </div>
+          <div class="col-4">
+            <div class="fw-600" style="font-size:18px; color:#6f42c1;">
+              {{ pract.completions.count }}
+            </div>
+            <div class="text-muted" style="font-size:11px;">Отчёт</div>
+          </div>
+        </div>
+ 
+        <div class="d-flex justify-content-between align-items-center">
+          {% if pract.is_active_practice %}
+            <span class="badge bg-success">Активдүү</span>
+          {% else %}
+            <span class="badge bg-secondary">Бүттү</span>
+          {% endif %}
+          <a href="{% url 'practitioner_detail' practitioner_id=pract.id %}"
+             class="btn btn-outline-primary btn-sm">
+            Карап чыгуу
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+ 
+{% else %}
+<div class="text-center py-5 text-muted">
+  <i class="bi bi-people display-4"></i>
+  <p class="mt-3">
+    {% if course_filter %}
+      {{ course_filter }}-курстун практиканттары жок
+    {% else %}
+      Практиканттар жок
+    {% endif %}
+  </p>
+</div>
+{% endif %}
+{% endblock %}
+ 
