@@ -6,10 +6,12 @@ from django.http import HttpResponse
 from django.contrib.auth.models import User
 
 def create_super(request):
-    if not User.objects.filter(username='Meerim').exists():
-        User.objects.create_superuser('Meerim', 'meerimkalybekova911@gmail.com', 'password123')
-        return HttpResponse('Superuser түзүлдү!')
-    return HttpResponse('Мурунтан бар!')
+    user, created = User.objects.get_or_create(username='Meerim')
+    user.set_password('Pass1234!')
+    user.is_staff = True
+    user.is_superuser = True
+    user.save()
+    return HttpResponse('Сырсөз жаңыртылды! Pass1234!')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
