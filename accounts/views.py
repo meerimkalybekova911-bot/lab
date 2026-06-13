@@ -3,7 +3,6 @@ import csv
 import os
 import logging
 from datetime import date, datetime, timedelta
-
 from django.core.files.base import ContentFile
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import authenticate, login, logout
@@ -1120,3 +1119,4 @@ def daily_plan_update(request, labassistant, plan_id):
     return render(request, 'accounts/daily_plan_form.html', {
         'labassistant': labassistant, 'plan': plan, 'editing': True
     })
+
