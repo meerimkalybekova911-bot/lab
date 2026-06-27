@@ -2,6 +2,7 @@ import base64
 import csv
 import os
 import logging
+logger = logging.getLogger(__name__)
 from datetime import date, datetime, timedelta
 from django.core.files.base import ContentFile
 from django.shortcuts import render, get_object_or_404, redirect
@@ -549,21 +550,29 @@ def toggle_inventory_lock(request):
 def profile_view(request):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
  
-    # FIX: os.path.exists() алынды — S3/Supabase Storage'де .path жок,
-    # бул ар дайым ката берип, файлдарды None кылып коюп жатты.
-    # Эгер файл чындап жок болсо, view'ди жүктөгөндө эмес,
-    # колдонуу учурунда (template'те) текшерилет.
- 
     if request.method == 'POST':
+        # DEBUG: эмне келип жатканын логго жазабыз
+        logger.warning(f"POST FILES: {request.FILES}")
+        logger.warning(f"profile_image in FILES: {'profile_image' in request.FILES}")
+        logger.warning(f"resume in FILES: {'resume' in request.FILES}")
+ 
         form = LabAssistantProfileForm(
             request.POST, request.FILES, instance=labassistant
         )
+ 
         if form.is_valid():
-            form.save()
+            logger.warning(f"Form valid. Cleaned profile_image: {form.cleaned_data.get('profile_image')}")
+            logger.warning(f"Form valid. Cleaned resume: {form.cleaned_data.get('resume')}")
+ 
+            saved = form.save()
+ 
+            logger.warning(f"After save. profile_image: {saved.profile_image}")
+            logger.warning(f"After save. resume: {saved.resume}")
+ 
             messages.success(request, "Профиль ийгиликтүү жаңыртылды!")
             return redirect('profile')
         else:
-            # FIX: каталар көрүнсүн — кайсы талаада ката бар экени так болсун
+            logger.warning(f"Form errors: {form.errors}")
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"{field}: {error}")
@@ -573,6 +582,7 @@ def profile_view(request):
     return render(request, 'accounts/profile.html', {
         'form': form, 'labassistant': labassistant,
     })
+ 
  
  
 @login_required
