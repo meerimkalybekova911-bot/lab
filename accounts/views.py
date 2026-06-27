@@ -548,19 +548,12 @@ def toggle_inventory_lock(request):
 @login_required
 def profile_view(request):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
-
-    # Жок файлдарды базадан тазалоо
-    for field in ('profile_image', 'resume'):
-        file_field = getattr(labassistant, field)
-        if file_field:
-            try:
-                if not os.path.exists(file_field.path):
-                    setattr(labassistant, field, None)
-                    labassistant.save(update_fields=[field])
-            except Exception:
-                setattr(labassistant, field, None)
-                labassistant.save(update_fields=[field])
-
+ 
+    # FIX: os.path.exists() алынды — S3/Supabase Storage'де .path жок,
+    # бул ар дайым ката берип, файлдарды None кылып коюп жатты.
+    # Эгер файл чындап жок болсо, view'ди жүктөгөндө эмес,
+    # колдонуу учурунда (template'те) текшерилет.
+ 
     if request.method == 'POST':
         form = LabAssistantProfileForm(
             request.POST, request.FILES, instance=labassistant
@@ -570,22 +563,25 @@ def profile_view(request):
             messages.success(request, "Профиль ийгиликтүү жаңыртылды!")
             return redirect('profile')
         else:
-            messages.error(request, "Ката кетти. Маалыматты текшериңиз.")
+            # FIX: каталар көрүнсүн — кайсы талаада ката бар экени так болсун
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         form = LabAssistantProfileForm(instance=labassistant)
-
+ 
     return render(request, 'accounts/profile.html', {
         'form': form, 'labassistant': labassistant,
     })
-
-
+ 
+ 
 @login_required
 def leader_profile_view(request):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
     if labassistant.role != 'leader':
         messages.error(request, "Уруксат жок!")
         return redirect('dashboard')
-
+ 
     if request.method == 'POST':
         form = LabAssistantProfileForm(
             request.POST, request.FILES, instance=labassistant
@@ -595,10 +591,12 @@ def leader_profile_view(request):
             messages.success(request, "Профиль сакталды!")
             return redirect('leader_profile')
         else:
-            messages.error(request, "Форманы туура толтуруңуз!")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         form = LabAssistantProfileForm(instance=labassistant)
-
+ 
     return render(request, 'accounts/leader_profile.html', {
         'form': form, 'labassistant': labassistant
     })
