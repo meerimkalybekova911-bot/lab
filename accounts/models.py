@@ -2,6 +2,14 @@ from django.db import models
 from django.contrib.auth.models import User
 from datetime import date as today_date, timedelta
 from datetime import date
+from .utils import (
+    report_upload_path,
+    daily_plan_upload_path,
+    project_upload_path,
+    plan_completion_upload_path,
+    resume_upload_path,
+    profile_image_upload_path,
+)
 
 # =====================
 # Кабинеттер
@@ -34,8 +42,8 @@ class LabAssistant(models.Model):
     phone        = models.CharField("Телефон", max_length=20, blank=True, null=True)
     notes        = models.TextField("Эскертүү", blank=True, null=True)
     rooms        = models.ManyToManyField(Room, verbose_name="Кабинеттер", blank=True)
-    profile_image = models.ImageField(upload_to='profiles/', blank=True, null=True)
-    resume       = models.FileField("Резюме", upload_to='resumes/', blank=True, null=True)
+    profile_image = models.ImageField(upload_to=profile_image_upload_path, blank=True, null=True)
+    resume       = models.FileField("Резюме", upload_to=resume_upload_path, blank=True, null=True)
 
     def __str__(self):
         return f"{self.full_name} ({self.get_role_display()})"
@@ -96,10 +104,8 @@ class Project(models.Model):
         "Статус", max_length=20,
         choices=STATUS_CHOICES, default='active'
     )
-    attachment = models.FileField(
-        "Тиркеме", upload_to='projects/%Y/%m/',
-        null=True, blank=True
-    )
+    attachment = models.FileField("Тиркеме", upload_to=project_upload_path, null=True, blank=True)
+
     is_public = models.BooleanField("Жарыяланган", default=True)
 
     def __str__(self):
@@ -146,7 +152,7 @@ class Report(models.Model):
     )
     title       = models.CharField("Отчеттун аты", max_length=255)
     description = models.TextField("Баяндама", blank=True)
-    file        = models.FileField("Файл", upload_to='reports/%Y/%m/', blank=True, null=True)
+    file = models.FileField("Файл", upload_to=report_upload_path, blank=True, null=True)
     comment     = models.TextField("Кошумча маалымат", blank=True)
     created_at  = models.DateTimeField("Түзүлгөн убакыт", auto_now_add=True)
 
@@ -337,7 +343,7 @@ class DailyPlan(models.Model):
     description = models.TextField("Мазмуну")
     attachment  = models.FileField(
         "Файл (нускамалар, материалдар)",
-        upload_to='daily_plans/%Y/%m/',
+        upload_to=daily_plan_upload_path,
         blank=True, null=True
     )
     created_by  = models.ForeignKey(
@@ -417,7 +423,7 @@ class PlanCompletion(models.Model):
     )
     attachment  = models.FileField(
         "Файл (скриншот, документ)",
-        upload_to='plan_reports/%Y/%m/',
+        upload_to=plan_completion_upload_path,
         blank=True, null=True
     )
     submitted_at = models.DateTimeField("Жиберилген убакыт", auto_now_add=True)

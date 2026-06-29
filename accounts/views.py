@@ -376,7 +376,6 @@ def report_update_view(request, report_id):
         'page_title': 'Отчетту өзгөртүү',
     })
 
-
 @login_required
 def report_delete_view(request, report_id):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
@@ -397,13 +396,14 @@ def report_download_view(request, report_id):
     if not report.file:
         messages.error(request, "Файл табылган жок")
         return redirect('reports_list')
-    response = FileResponse(open(report.file.path, 'rb'), as_attachment=True)
-    response['Content-Disposition'] = (
-        f'attachment; filename="{os.path.basename(report.file.path)}"'
-    )
-    return response
-
-
+ 
+    # FIX: report.file.path S3/Supabase storage'де иштебейт
+    # (NotImplementedError: бул backend абсолюттук жолдорду колдобойт)
+    # Ордуна Supabase'дин public URL'ине redirect кылабыз —
+    # файл түз браузерден жүктөлөт.
+    return redirect(report.file.url)
+ 
+ 
 @login_required
 def export_reports_csv(request):
     labassistant = get_object_or_404(LabAssistant, user=request.user)
