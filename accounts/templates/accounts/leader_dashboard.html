@@ -315,7 +315,9 @@
               {% if lab.notes %}
               <div class="mb-2">
                 <small class="text-muted d-block mb-1" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Өмүр баяны</small>
-                <p class="mb-0" style="font-size:13px;color:#495057;">{{ lab.notes|truncatechars:200 }}</p>
+                <p class="mb-0" style="font-size:13px;color:#495057;">
+                  {{ lab.notes }}
+              </p>
               </div>
               {% endif %}
               <!-- Статистика -->
