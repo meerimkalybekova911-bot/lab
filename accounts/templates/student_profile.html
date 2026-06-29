@@ -1,0 +1,156 @@
+{% extends 'accounts/base_student.html' %}
+{% block title %}Профиль{% endblock %}
+ 
+{% block content %}
+<div class="row g-4">
+ 
+  <!-- ПРОФИЛЬ КАРТОЧКАСЫ -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm text-center" style="border-radius:14px;">
+      <div class="card-body py-4">
+ 
+        <div style="width:120px; height:120px; border-radius:50%; background:#e2e8f0;
+                    margin:0 auto 14px; overflow:hidden; display:flex;
+                    align-items:center; justify-content:center; font-size:48px; color:#94a3b8;">
+          {% if practitioner.photo %}
+            <img src="{{ practitioner.photo.url }}"
+                 style="width:100%; height:100%; object-fit:cover;"
+                 onerror="this.style.display='none';">
+          {% else %}
+            <i class="bi bi-person"></i>
+          {% endif %}
+        </div>
+ 
+        <h5 class="mb-1">{{ practitioner.full_name }}</h5>
+        <p class="text-muted mb-2">
+          {{ practitioner.get_course_display }} · {{ practitioner.group }}
+        </p>
+        {% if practitioner.university %}
+          <p class="text-muted small mb-3">{{ practitioner.university }}</p>
+        {% endif %}
+ 
+        {% if practitioner.is_active_practice %}
+          <span class="badge bg-success mb-2">Практика жүрүп жатат</span>
+        {% else %}
+          <span class="badge bg-secondary mb-2">Практика бүттү</span>
+        {% endif %}
+ 
+        <hr>
+ 
+        <div class="text-start">
+          {% if practitioner.phone %}
+          <p class="small mb-2">
+            <i class="bi bi-telephone text-primary me-2"></i>{{ practitioner.phone }}
+          </p>
+          {% endif %}
+          <p class="small mb-2">
+            <i class="bi bi-calendar-range text-primary me-2"></i>
+            {{ practitioner.practice_start|date:"d.m.Y" }} —
+            {{ practitioner.practice_end|date:"d.m.Y"|default:"..." }}
+          </p>
+          <p class="small mb-2">
+            <i class="bi bi-door-open text-primary me-2"></i>
+            {{ practitioner.room.name|default:"Кабинет белгиленген жок" }}
+          </p>
+          {% if practitioner.supervisor %}
+          <p class="small mb-0">
+            <i class="bi bi-person-badge text-primary me-2"></i>
+            Жооптуу: {{ practitioner.supervisor.full_name }}
+          </p>
+          {% endif %}
+        </div>
+      </div>
+ 
+      <div class="card-footer bg-transparent border-0 pb-4 px-4">
+        <div class="d-flex justify-content-between small text-muted mb-1">
+          <span>Прогресс</span>
+          <span>{{ practitioner.current_work_day }} / {{ practitioner.duration_days }} күн</span>
+        </div>
+        <div class="progress" style="height:6px;">
+          {% widthratio practitioner.current_work_day practitioner.duration_days 100 as pct %}
+          <div class="progress-bar bg-primary" style="width:{{ pct }}%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- ПРОФИЛДИ ӨЗГӨРТҮҮ ФОРМАСЫ -->
+  <div class="col-md-8">
+    <div class="card border-0 shadow-sm" style="border-radius:14px;">
+      <div class="card-header" style="font-weight:500;">
+        <i class="bi bi-pencil-square"></i> Профильди өзгөртүү
+      </div>
+      <div class="card-body">
+ 
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+ 
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+          </div>
+          {% endif %}
+ 
+          <div class="mb-3">
+            <label class="form-label" style="font-weight:500;">
+              Аты-жөнү <span class="text-danger">*</span>
+            </label>
+            {{ form.full_name }}
+            {% if form.full_name.errors %}
+              <div class="text-danger small mt-1">{{ form.full_name.errors }}</div>
+            {% endif %}
+          </div>
+ 
+          <div class="mb-3">
+            <label class="form-label" style="font-weight:500;">Телефон</label>
+            {{ form.phone }}
+            {% if form.phone.errors %}
+              <div class="text-danger small mt-1">{{ form.phone.errors }}</div>
+            {% endif %}
+            <small class="text-muted">Формат: +996XXXXXXXXX</small>
+          </div>
+ 
+          <div class="mb-4">
+            <label class="form-label" style="font-weight:500;">Сүрөт</label>
+            {{ form.photo }}
+            {% if form.photo.errors %}
+              <div class="text-danger small mt-1">{{ form.photo.errors }}</div>
+            {% endif %}
+            {% if practitioner.photo %}
+              <small class="text-muted d-block mt-1">
+                Учурдагы: <a href="{{ practitioner.photo.url }}" target="_blank">сүрөттү көрүү</a>
+              </small>
+            {% endif %}
+          </div>
+ 
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-save me-1"></i> Сактоо
+          </button>
+        </form>
+ 
+      </div>
+    </div>
+  </div>
+ 
+</div>
+ 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const phone = document.getElementById("phone");
+    if (!phone) return;
+    if (!phone.value) phone.value = "+996";
+    phone.addEventListener("input", function () {
+        let digits = phone.value.replace(/\D/g, '');
+        if (digits.startsWith("996")) digits = digits.substring(3);
+        digits = digits.substring(0, 9);
+        phone.value = "+996" + digits;
+    });
+    phone.addEventListener("keydown", function (e) {
+        if ((e.key === "Backspace" || e.key === "Delete") && phone.value.length <= 4) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}
+ 

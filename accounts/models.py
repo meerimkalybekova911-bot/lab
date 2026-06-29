@@ -9,6 +9,7 @@ from .utils import (
     plan_completion_upload_path,
     resume_upload_path,
     profile_image_upload_path,
+    practitioner_photo_upload_path,
 )
 
 # =====================
@@ -254,7 +255,7 @@ class Practitioner(models.Model):
     )
     full_name     = models.CharField("ФИО", max_length=150)
     phone         = models.CharField("Телефон", max_length=20, blank=True, null=True)
-    photo         = models.ImageField("Сүрөт", upload_to='practitioners/%Y/', blank=True, null=True)
+    photo         = models.ImageField(upload_to=practitioner_photo_upload_path, blank=True, null=True)
     course        = models.IntegerField("Курс", choices=COURSE_CHOICES)
     group         = models.CharField("Топ", max_length=50, help_text="мис.: КИ-21")
     university    = models.CharField("Окуу жайы", max_length=200, blank=True)

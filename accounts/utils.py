@@ -86,3 +86,7 @@ def resume_upload_path(instance, filename):
 def profile_image_upload_path(instance, filename):
     filename = safe_filename(filename)
     return f"profiles/{filename}"
+
+def practitioner_photo_upload_path(instance, filename):
+    clean = safe_filename(filename)
+    return f"practitioners/{clean}"

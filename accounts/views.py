@@ -930,6 +930,27 @@ def student_submit_report(request, practitioner, plan_id):
         'existing':     existing,
     })
 
+@_practitioner_required
+def student_profile(request, practitioner):
+    if request.method == 'POST':
+        form = PractitionerProfileForm(
+            request.POST, request.FILES, instance=practitioner
+        )
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Профиль ийгиликтүү жаңыртылды!")
+            return redirect('student_profile')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+    else:
+        form = PractitionerProfileForm(instance=practitioner)
+ 
+    return render(request, 'accounts/student_profile.html', {
+        'practitioner': practitioner,
+        'form': form,
+    })
 
 # ─────────────────────────────────────────
 # ЛАБОРАНТ: ПРАКТИКАНТТАР ТИЗМЕСИ

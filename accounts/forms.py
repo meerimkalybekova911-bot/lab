@@ -2,7 +2,7 @@ from django import forms
 from .models import (
     Attendance, Project, Report,
     Computer, Room, InventoryLock, LabAssistant,
-    DailyPlan, PlanCompletion,
+    DailyPlan, PlanCompletion, Practitioner,
 )
 import re
 
@@ -323,3 +323,35 @@ class DailyPlanForm(forms.ModelForm):
                     f"{course}-курстун {day_number}-күнүнүн иш планы мурунтан бар!"
                 )
         return cleaned
+
+# ─────────────────────────────────────────
+# Практиканттын өз профилин өзгөртүү формасы
+# ─────────────────────────────────────────
+class PractitionerProfileForm(forms.ModelForm):
+    class Meta:
+        model  = Practitioner
+        fields = ['full_name', 'phone', 'photo']
+        widgets = {
+            'full_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Аты-жөнүңүздү жазыңыз',
+            }),
+            'phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'id': 'phone',
+                'placeholder': '+996XXXXXXXXX',
+            }),
+            'photo': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*',
+            }),
+        }
+ 
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone', '').strip()
+        if phone:
+            clean = phone.replace(' ', '')
+            if not re.match(r'^\+996\d{9}$', clean):
+                raise forms.ValidationError("Телефон форматы: +996XXXXXXXXX (9 цифра)")
+            return clean
+        return phone
