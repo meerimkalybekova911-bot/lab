@@ -124,9 +124,10 @@ if USE_SUPABASE_STORAGE:
     AWS_S3_ADDRESSING_STYLE = 'path'  # Supabase path-style талап кылат
     AWS_S3_SIGNATURE_VERSION = 's3v4'
  
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    DEFAULT_FILE_STORAGE = 'accounts.storage_backends.SupabaseMediaStorage'
  
-    # Сүрөт/файл URL'дары Supabase'ден түз көрсөтүлөт
+    # MEDIA_URL биздин custom storage class'та колдонулбайт,
+    # бирок Django'нун кээ бир ички текшерүүлөрү үчүн коюп коёбуз
     MEDIA_URL = (
         f"{os.environ.get('SUPABASE_PUBLIC_URL')}/storage/v1/object/public/"
         f"{AWS_STORAGE_BUCKET_NAME}/"
