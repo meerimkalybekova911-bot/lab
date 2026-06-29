@@ -118,8 +118,8 @@ if USE_SUPABASE_STORAGE:
     AWS_S3_ENDPOINT_URL = os.environ.get('SUPABASE_S3_ENDPOINT')
     AWS_S3_REGION_NAME = os.environ.get('SUPABASE_REGION', 'ap-northeast-2')
  
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_DEFAULT_ACL = 'public-read'  # FIX: файлдар окуу үчүн ачык болсун
+    AWS_S3_FILE_OVERWRITE = True  # FIX: False болсо HeadObject чалат, ал ката берет
+    AWS_DEFAULT_ACL = 'public-read'
     AWS_QUERYSTRING_AUTH = False  # Шилтеме токенсиз, түз ачылат
     AWS_S3_ADDRESSING_STYLE = 'path'  # Supabase path-style талап кылат
     AWS_S3_SIGNATURE_VERSION = 's3v4'
@@ -152,3 +152,4 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+ 
