@@ -23,6 +23,7 @@ from .models import (
 from .forms import (
     AttendanceForm, ProjectForm, ComputerForm,
     ReportForm, LabAssistantProfileForm,
+    PractitionerProfileForm,
 )
 
 logger = logging.getLogger(__name__)
