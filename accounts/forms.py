@@ -157,13 +157,15 @@ class LabAssistantProfileForm(forms.ModelForm):
         }
 
     def clean_phone(self):
-        phone = self.cleaned_data.get('phone', '').strip()
+        phone = (self.cleaned_data.get('phone') or '').strip()
         if phone:
             clean = phone.replace(' ', '')
             if not re.match(r'^\+996\d{9}$', clean):
-                raise forms.ValidationError("Телефон форматы: +996XXXXXXXXX (9 цифра)")
-            return clean
-        return phone
+                raise forms.ValidationError(
+                    "Телефон форматы: +996XXXXXXXXX (9 цифра)"
+                    )
+                return clean
+            return phone
 
     def clean_resume(self):
         file = self.cleaned_data.get('resume')
