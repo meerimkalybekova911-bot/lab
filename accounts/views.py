@@ -23,7 +23,7 @@ from .models import (
 from .forms import (
     AttendanceForm, ProjectForm, ComputerForm,
     ReportForm, LabAssistantProfileForm,
-    PractitionerProfileForm,
+    PractitionerProfileForm, DailyPlanForm,
 )
 
 logger = logging.getLogger(__name__)
@@ -1105,59 +1105,43 @@ def daily_plans_list(request, labassistant):
 
 @_lab_or_leader_required
 def daily_plan_create(request, labassistant):
-    if request.method == 'POST':
-        course      = request.POST.get('course')
-        day_number  = request.POST.get('day_number')
-        title       = request.POST.get('title', '').strip()
-        description = request.POST.get('description', '').strip()
-        attachment  = request.FILES.get('attachment')
+    if request.method == "POST":
+        form = DailyPlanForm(request.POST, request.FILES)
 
-        if not all([course, day_number, title, description]):
-            messages.error(request, "Бардык талааларды толтуруңуз!")
-            return redirect('daily_plan_create')
+        if form.is_valid():
+            plan = form.save(commit=False)
+            plan.created_by = labassistant
+            plan.save()
 
-        # Бул курстун бул күнү мурун бар болсо — ката
-        if DailyPlan.objects.filter(course=course, day_number=day_number).exists():
-            messages.error(
-                request,
-                f"{course}-курстун {day_number}-күнүнүн иш планы мурунтан бар!"
-            )
-            return redirect('daily_plan_create')
+            messages.success(request, "Иш план ийгиликтүү түзүлдү.")
+            return redirect("daily_plans_list")
 
-        DailyPlan.objects.create(
-            course=course,
-            day_number=day_number,
-            title=title,
-            description=description,
-            attachment=attachment,
-            created_by=labassistant,
-        )
-        messages.success(request, "Иш план түзүлдү!")
-        return redirect('daily_plans_list')
+    else:
+        form = DailyPlanForm()
 
-    return render(request, 'accounts/daily_plan_form.html', {
-        'labassistant': labassistant, 'editing': False
+    return render(request, "accounts/daily_plan_form.html", {
+        "labassistant": labassistant,
+        "form": form,
+        "editing": False,
     })
-
 
 @_lab_or_leader_required
 def daily_plan_update(request, labassistant, plan_id):
-    plan = get_object_or_404(DailyPlan, id=plan_id)
+    plan = get_object_or_404(DailyPlan, pk=plan_id)
 
-    if request.method == 'POST':
-        plan.title       = request.POST.get('title', '').strip()
-        plan.description = request.POST.get('description', '').strip()
-        attachment = request.FILES.get('attachment')
-        if attachment:
-            plan.attachment = attachment
-        if request.POST.get('attachment-clear') and plan.attachment:
-            plan.attachment.delete(save=False)
-            plan.attachment = None
-        plan.save()
-        messages.success(request, "Иш план жаңыртылды!")
-        return redirect('daily_plans_list')
+    if request.method == "POST":
+        form = DailyPlanForm(request.POST, request.FILES, instance=plan)
 
-    return render(request, 'accounts/daily_plan_form.html', {
-        'labassistant': labassistant, 'plan': plan, 'editing': True
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Иш план жаңыртылды.")
+            return redirect("daily_plans_list")
+    else:
+        form = DailyPlanForm(instance=plan)
+
+    return render(request, "accounts/daily_plan_form.html", {
+        "labassistant": labassistant,
+        "form": form,
+        "plan": plan,
+        "editing": True,
     })
-
