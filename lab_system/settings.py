@@ -119,7 +119,7 @@ if USE_SUPABASE_STORAGE:
     AWS_S3_REGION_NAME = os.environ.get('SUPABASE_REGION', 'ap-northeast-2')
  
     AWS_S3_FILE_OVERWRITE = True  # FIX: False болсо HeadObject чалат, ал ката берет
-    AWS_DEFAULT_ACL = 'public-read'
+    AWS_DEFAULT_ACL = None
     AWS_QUERYSTRING_AUTH = False  # Шилтеме токенсиз, түз ачылат
     AWS_S3_ADDRESSING_STYLE = 'path'  # Supabase path-style талап кылат
     AWS_S3_SIGNATURE_VERSION = 's3v4'
